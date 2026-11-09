@@ -207,7 +207,26 @@ function toggleSet(i,j){let s=active.exercises[i].sets[j];s.done=!s.done;renderA
 function addSet(i){let ex=active.exercises[i];ex.sets.push({weight:ex.sets.at(-1)?.weight||'',reps:ex.targetReps,done:false});renderActive()}
 function finishWorkout(){if(!active)return;let logged=active.exercises.map(ex=>({...ex,sets:ex.sets.filter(s=>s.done||s.weight!==''||s.reps!=='')})).filter(ex=>ex.sets.length);if(!logged.length){toast('Log at least one set first');return}let session={...active,exercises:logged,end:new Date().toISOString()};data.history.unshift(session);save();active=null;stopTimer();toast('Workout saved. Nice work!');showTab('dashboard')}
 function cancelWorkout(){if(confirm('Discard this workout? Your entries will be lost.')){active=null;stopTimer();showTab('routines')}}
-function renderRoutines(){$('routineList').innerHTML=data.routines.map(r=>`<div class="workout-card"><div><strong>${escapeHtml(r.name)}</strong><p>${escapeHtml(r.focus||'Custom workout')} · ${r.exercises.length} exercises</p></div><button class="btn primary small" onclick="startWorkout('${escapeHtml(r.name).replace(/'/g,"\\'")}')">Start</button></div>`).join('')}
+function renderRoutines(){$('routineList').innerHTML=data.routines.map((r,i)=>`<div class="workout-card"><div><strong>${escapeHtml(r.name)}</strong><p>${escapeHtml(r.focus||'Custom workout')} · ${r.exercises.length} exercises</p></div><div style="display:flex;gap:6px"><button class="btn light small" onclick="openRoutineEditor(${i})">Edit</button><button class="btn primary small" onclick="startWorkout('${escapeHtml(r.name).replace(/'/g,"\\'")}')">Start</button></div></div>`).join('')}
+
+function openRoutineEditor(index){
+ const r=data.routines[index];if(!r)return;
+ $('modal').innerHTML='<div class="row"><h2>Edit workout</h2><button class="btn ghost" onclick="closeModal()">✕</button></div>'+
+ '<label>WORKOUT NAME</label><input id="editRoutineName" value="'+escapeHtml(r.name)+'">'+
+ '<label>EXERCISES (one per line)</label><textarea id="editRoutineExercises" rows="9" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px">'+r.exercises.map(e=>escapeHtml(e[0])).join('\n')+'</textarea>'+
+ '<div class="sub">Add, remove or rename exercises. New exercises start at 3 sets × 10 reps. Existing exercise targets are kept when names stay the same.</div>'+
+ '<button class="btn primary full" onclick="saveRoutineEdit('+index+')">Save changes</button><button class="btn ghost full" onclick="deleteRoutine('+index+')">Delete this workout</button>';
+ openModal();
+}
+function saveRoutineEdit(index){
+ const name=$('editRoutineName').value.trim(),lines=$('editRoutineExercises').value.split('\n').map(x=>x.trim()).filter(Boolean);
+ if(!name||!lines.length){toast('Add a workout name and at least one exercise');return}
+ const old=data.routines[index];
+ data.routines[index]={...old,name,exercises:lines.map(n=>{const match=old.exercises.find(e=>e[0].toLowerCase()===n.toLowerCase());return match||[n,3,10]})};
+ save();closeModal();renderRoutines();renderDashboard();toast('Workout updated');
+}
+function deleteRoutine(index){if(!confirm('Delete this workout routine? Your completed workout history will stay.'))return;data.routines.splice(index,1);save();closeModal();renderRoutines();renderDashboard();toast('Routine deleted')}
+
 function openCustomRoutine(){$('modal').innerHTML=`<div class="row"><h2>Create a workout</h2><button class="btn ghost" onclick="closeModal()">✕</button></div><label>WORKOUT NAME</label><input id="routineName" placeholder="e.g. Upper body"><label>EXERCISES (one per line)</label><textarea id="routineExercises" rows="7" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px" placeholder="Bench Press&#10;Lat Pulldown&#10;Shoulder Press"></textarea><button class="btn primary full" onclick="saveCustomRoutine()">Save routine</button>`;openModal()}
 function saveCustomRoutine(){let name=$('routineName').value.trim(),lines=$('routineExercises').value.split('\n').map(x=>x.trim()).filter(Boolean);if(!name||!lines.length){toast('Add a name and at least one exercise');return}data.routines.push({name,focus:'Custom workout',exercises:lines.map(n=>[n,3,10])});save();closeModal();renderRoutines();toast('Routine created')}
 function openWeightModal(){$('modal').innerHTML=`<div class="row"><h2>Log body weight</h2><button class="btn ghost" onclick="closeModal()">✕</button></div><label>WEIGHT (KG)</label><input id="weightInput" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 75.5"><label>DATE</label><input id="weightDate" type="date" value="${new Date().toISOString().slice(0,10)}"><button class="btn primary full" onclick="saveWeight()">Save weight</button>`;openModal()}
