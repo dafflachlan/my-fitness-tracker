@@ -101,7 +101,7 @@ label{font-size:12px;color:var(--muted);font-weight:700}
 <h1>Your progress</h1><div class="sub">A record of the work you're putting in.</div>
 <div class="section card"><div class="row"><h2>Body weight</h2><button class="btn light small" onclick="openWeightModal()">＋ Add</button></div><div class="metric" id="latestWeight">—</div><div class="metric-label">Latest recorded weight</div><canvas id="weightChart" width="600" height="220"></canvas><div id="weightHistory" class="sub"></div></div>
 <div class="section card"><h2>Workout consistency</h2><div class="metric" id="allWorkouts">0</div><div class="metric-label">Completed workouts</div><div class="sub" id="lastWorkoutText">Your completed sessions will appear here.</div></div>
-<div class="section card"><h2>Exercise progress</h2><div id="exerciseProgress" class="stack"></div></div>
+<div class="section card"><h2>Exercise progress</h2><div id="exerciseProgress" class="stack"></div></div><div class="section card"><h2>Back up your data</h2><div class="sub">Your workouts are saved in this browser on this device. Download a backup regularly so you can restore your history if you change phones or clear Safari data.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn primary" onclick="exportBackup()">Download backup</button><button class="btn light" onclick="document.getElementById(&quot;restoreFile&quot;).click()">Restore backup</button><input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div></div>
 </section>
 </main>
 </div>
@@ -237,6 +237,24 @@ function stopTimer(){running=false;clearInterval(timerInterval);$('timerButton')
 function resetTimer(){stopTimer();seconds=90;updateTimer()}
 function adjustTimer(n){seconds=Math.max(0,seconds+n);updateTimer()}
 function updateTimer(){$('timerDisplay').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
+function exportBackup(){
+ const payload={app:'My Fitness Tracker',version:1,exportedAt:new Date().toISOString(),data};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='my-fitness-tracker-backup-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);toast('Backup downloaded');
+}
+function importBackup(event){
+ const file=event.target.files&&event.target.files[0];if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{try{
+  const parsed=JSON.parse(reader.result),incoming=parsed.data||parsed;
+  if(!incoming||!Array.isArray(incoming.routines)||!Array.isArray(incoming.history)||!Array.isArray(incoming.weights))throw new Error('This file is not a valid fitness tracker backup.');
+  if(!confirm('Restore this backup? It will replace the data currently stored in this browser. Download a backup of your current data first if you want to keep it.')){event.target.value='';return;}
+  data=incoming;save();renderDashboard();renderRoutines();renderProgress();toast('Backup restored successfully');
+ }catch(err){alert(err.message||'Could not read this backup file.')}event.target.value='';};
+ reader.readAsText(file);
+}
 function renderDashboard(){let now=new Date(),week=new Date(now);week.setDate(now.getDate()-6);let thisWeek=data.history.filter(h=>new Date(h.start)>=new Date(week.toDateString())).length;$('weekCount').textContent=thisWeek;$('sessionCount').textContent=data.history.length;$('exerciseCount').textContent=data.history.reduce((n,h)=>n+h.exercises.length,0);let latest=data.weights.at(-1);$('bodyMetric').textContent=latest?latest.value+' kg':'—';let next=data.routines[data.history.length%Math.max(1,data.routines.length)]||data.routines[0];$('nextWorkout').innerHTML=next?`<div class="row"><div><strong>${escapeHtml(next.name)}</strong><div class="sub" style="margin-top:5px">${escapeHtml(next.focus||'Custom workout')}</div></div><button class="btn primary small" onclick="startWorkout('${escapeHtml(next.name).replace(/'/g,"\\'")}')">Start</button></div>`:'Create your first routine';$('recentActivity').innerHTML=data.history.slice(0,3).map(h=>`<div class="workout-card"><div><strong>${escapeHtml(h.name)}</strong><p>${new Date(h.start).toLocaleDateString()} · ${h.exercises.length} exercises</p></div><span class="tag">Completed</span></div>`).join('')||'<div class="empty">Your completed workouts will show here.</div>'}
 function renderProgress(){let latest=data.weights.at(-1);$('latestWeight').textContent=latest?latest.value+' kg':'—';$('allWorkouts').textContent=data.history.length;$('lastWorkoutText').textContent=data.history.length?'Last session: '+new Date(data.history[0].start).toLocaleDateString():'Complete your first workout to start building your history.';$('weightHistory').textContent=data.weights.length?data.weights.length+' weigh-in'+(data.weights.length===1?'':'s')+' recorded':'No body weight entries yet.';drawChart();let best={};data.history.forEach(h=>h.exercises.forEach(ex=>ex.sets.forEach(s=>{let w=parseFloat(s.weight);if(w>0&&(!best[ex.name]||w>best[ex.name]))best[ex.name]=w})));let entries=Object.entries(best).sort((a,b)=>b[1]-a[1]);$('exerciseProgress').innerHTML=entries.map(([n,w])=>`<div class="row"><span>${escapeHtml(n)}</span><strong>${w} kg</strong></div>`).join('')||'<div class="empty">Log weights during workouts to see your strongest lifts here.</div>'}
 function drawChart(){let c=$('weightChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);if(!data.weights.length){ctx.fillStyle='#8a938c';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.fillText('Your weight trend will appear here',w/2,h/2);return}let vals=data.weights.map(x=>x.value),min=Math.min(...vals)-1,max=Math.max(...vals)+1;if(max===min)max=min+2;let pts=vals.map((v,i)=>({x:35+(w-70)*(vals.length===1?.5:i/(vals.length-1)),y:h-30-(v-min)/(max-min)*(h-60)}));ctx.strokeStyle='#246b4b';ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fillStyle='#246b4b';ctx.fill()});ctx.fillStyle='#778078';ctx.font='12px sans-serif';ctx.textAlign='left';ctx.fillText(max.toFixed(1)+' kg',4,17);ctx.fillText(min.toFixed(1)+' kg',4,h-8)}
