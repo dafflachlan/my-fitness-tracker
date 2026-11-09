@@ -132,7 +132,8 @@ const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 $('today').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1800)}
 function showTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='dashboard')renderDashboard();if(tab==='routines')renderRoutines();if(tab==='progress')renderProgress();if(tab==='train'&&active)renderActive();window.scrollTo(0,0)}
-function startWorkout(name){let routine=data.routines.find(r=>r.name===name)||data.routines[0];active={name:routine.name,start:new Date().toISOString(),exercises:routine.exercises.map(e=>({name:e[0],targetSets:e[1],targetReps:e[2],sets:Array.from({length:e[1]},()=>({weight:'',reps:e[2],done:false}))}))};showTab('train');renderActive()}
+function isTimedExercise(name){return /plank|wall sit|dead hang|hollow hold|side bridge|glute bridge hold/i.test(name)}
+function startWorkout(name){let routine=data.routines.find(r=>r.name===name)||data.routines[0];active={name:routine.name,start:new Date().toISOString(),exercises:routine.exercises.map(e=>{let timed=isTimedExercise(e[0]);return {name:e[0],type:timed?'timed':'reps',targetSets:e[1],targetReps:timed?null:e[2],targetSeconds:timed?(Number(e[2])||30):null,sets:Array.from({length:e[1]},()=>timed?{weight:'',seconds:Number(e[2])||30,done:false}:{weight:'',reps:e[2],done:false})}})};showTab('train');renderActive()}
 
 
 const exerciseGuides={
@@ -162,6 +163,7 @@ function openExerciseGuide(name){
 }
 
 function previousExercise(name){
+  if(isTimedExercise(name))return null;
   for(const session of data.history){
     const ex=session.exercises.find(e=>e.name.toLowerCase()===name.toLowerCase());
     if(ex){
@@ -172,6 +174,7 @@ function previousExercise(name){
   return null;
 }
 function overloadAdvice(ex){
+  if(ex.type==='timed'||isTimedExercise(ex.name))return {kind:'new',title:'Build your hold time gradually',detail:'Aim for controlled holds of '+(ex.targetSeconds||30)+' seconds. Stop if your form breaks down.',button:'',weight:null};
   const prev=previousExercise(ex.name);
   if(!prev) return {kind:'new',title:'First time tracking this exercise',detail:'Choose a comfortable starting weight and aim for '+ex.targetSets+' sets of '+ex.targetReps+' reps.',button:'',weight:null};
   const weights=prev.sets.map(s=>Number(s.weight));
@@ -199,13 +202,20 @@ function applySuggestedWeight(i,weight){
   renderActive();
 }
 
-function renderActive(){if(!active){$('activeWorkout').innerHTML='<div class="empty">No workout in progress.<br>Choose a routine to get started.</div>';return}
+function renderActive(){
+if(!active){$('activeWorkout').innerHTML='<div class="empty">No workout in progress.<br>Choose a routine to get started.</div>';return}
 $('trainTitle').textContent=active.name;$('trainSubtitle').textContent=active.exercises.length+' exercises · Started '+new Date(active.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-$('activeWorkout').innerHTML=active.exercises.map((ex,i)=>{const advice=overloadAdvice(ex);return `<div class="exercise"><div class="row"><div><div class="row"><h3>${escapeHtml(ex.name)}</h3><button class="guide-btn" onclick="openExerciseGuide(&quot;${escapeHtml(ex.name)}&quot;)">Guide</button></div><div class="sub">Target: ${ex.targetSets} sets × ${ex.targetReps} reps</div></div><button class="btn ghost small" onclick="addSet(${i})">＋ Set</button></div><div class="coach ${advice.kind}"><div class="coach-title">${advice.kind==='up'?'↗ ':advice.kind==='down'?'↓ ':advice.kind==='same'?'→ ':'✦ '}${escapeHtml(advice.title)}</div><div class="coach-detail">${escapeHtml(advice.detail)}</div>${advice.button?`<button class="btn light small coach-btn" onclick="applySuggestedWeight(${i},${advice.weight})">${escapeHtml(advice.button)}</button>`:''}</div><div class="set-head"><span>SET</span><span>WEIGHT (kg)</span><span>REPS</span><span>✓</span></div>${ex.sets.map((s,j)=>`<div class="set-row"><span class="set-num">${j+1}</span><input class="field" type="number" inputmode="decimal" min="0" step="0.5" placeholder="0" value="${escapeHtml(s.weight)}" onchange="updateSet(${i},${j},'weight',this.value)"><input class="field" type="number" inputmode="numeric" min="0" step="1" placeholder="reps" value="${escapeHtml(s.reps)}" onchange="updateSet(${i},${j},'reps',this.value)"><button class="check ${s.done?'done':''}" onclick="toggleSet(${i},${j})">${s.done?'✓':''}</button></div>`).join('')}</div>`}).join('')}
+$('activeWorkout').innerHTML=active.exercises.map((ex,i)=>{let timed=ex.type==='timed'||isTimedExercise(ex.name);if(timed){ex.type='timed';ex.targetSeconds=ex.targetSeconds||30;ex.sets.forEach(s=>{if(s.seconds==null)s.seconds=Number(s.reps)||ex.targetSeconds;delete s.reps;});}
+let advice=overloadAdvice(ex);
+let target=timed?ex.targetSeconds+' seconds':ex.targetReps+' reps';
+let fields=ex.sets.map((s,j)=>'<div class="set-row"><span class="set-num">'+(j+1)+'</span>'+(timed?'<input class="field" type="number" inputmode="numeric" min="1" step="5" placeholder="30 sec" value="'+escapeHtml(s.seconds)+'" onchange="updateSet('+i+','+j+',\'seconds\',this.value)" style="grid-column:span 2">':'<input class="field" type="number" inputmode="decimal" min="0" step="0.5" placeholder="0 kg" value="'+escapeHtml(s.weight)+'" onchange="updateSet('+i+','+j+',\'weight\',this.value)"><input class="field" type="number" inputmode="numeric" min="0" step="1" placeholder="reps" value="'+escapeHtml(s.reps)+'" onchange="updateSet('+i+','+j+',\'reps\',this.value)">')+'<button class="check '+(s.done?'done':'')+'" onclick="toggleSet('+i+','+j+')">'+(s.done?'✓':'')+'</button></div>').join('');
+return '<div class="exercise"><div class="row"><div><div class="row"><h3>'+escapeHtml(ex.name)+'</h3><button class="guide-btn" onclick="openExerciseGuide(&quot;'+escapeHtml(ex.name)+'&quot;)">Guide</button></div><div class="sub">Target: '+ex.targetSets+' sets × '+target+'</div></div><button class="btn ghost small" onclick="addSet('+i+')">＋ Set</button></div><div class="coach '+advice.kind+'"><div class="coach-title">'+escapeHtml(advice.title)+'</div><div class="coach-detail">'+escapeHtml(advice.detail)+'</div>'+(advice.button?'<button class="btn light small coach-btn" onclick="applySuggestedWeight('+i+','+advice.weight+')">'+escapeHtml(advice.button)+'</button>':'')+'</div><div class="set-head"><span>SET</span>'+(timed?'<span style="grid-column:span 2">HOLD (SECONDS)</span>':'<span>WEIGHT (kg)</span><span>REPS</span>')+'<span>✓</span></div>'+fields+'</div>'
+}).join('')
+}
 function updateSet(i,j,k,v){active.exercises[i].sets[j][k]=v}
 function toggleSet(i,j){let s=active.exercises[i].sets[j];s.done=!s.done;renderActive();if(s.done){resetTimer();toggleTimer()}}
-function addSet(i){let ex=active.exercises[i];ex.sets.push({weight:ex.sets.at(-1)?.weight||'',reps:ex.targetReps,done:false});renderActive()}
-function finishWorkout(){if(!active)return;let logged=active.exercises.map(ex=>({...ex,sets:ex.sets.filter(s=>s.done||s.weight!==''||s.reps!=='')})).filter(ex=>ex.sets.length);if(!logged.length){toast('Log at least one set first');return}let session={...active,exercises:logged,end:new Date().toISOString()};data.history.unshift(session);save();active=null;stopTimer();toast('Workout saved. Nice work!');showTab('dashboard')}
+function addSet(i){let ex=active.exercises[i];if(ex.type==='timed'||isTimedExercise(ex.name))ex.sets.push({seconds:ex.sets.at(-1)?.seconds||ex.targetSeconds||30,done:false});else ex.sets.push({weight:ex.sets.at(-1)?.weight||'',reps:ex.targetReps,done:false});renderActive()}
+function finishWorkout(){if(!active)return;let logged=active.exercises.map(ex=>({...ex,sets:ex.sets.filter(s=>s.done||(ex.type==='timed'?Number(s.seconds)>0:(s.weight!==''||s.reps!=='')))})).filter(ex=>ex.sets.length);if(!logged.length){toast('Log at least one set first');return}let session={...active,exercises:logged,end:new Date().toISOString()};data.history.unshift(session);save();active=null;stopTimer();toast('Workout saved. Nice work!');showTab('dashboard')}
 function cancelWorkout(){if(confirm('Discard this workout? Your entries will be lost.')){active=null;stopTimer();showTab('routines')}}
 function renderRoutines(){$('routineList').innerHTML=data.routines.map((r,i)=>`<div class="workout-card"><div><strong>${escapeHtml(r.name)}</strong><p>${escapeHtml(r.focus||'Custom workout')} · ${r.exercises.length} exercises</p></div><div style="display:flex;gap:6px"><button class="btn light small" onclick="openRoutineEditor(${i})">Edit</button><button class="btn primary small" onclick="startWorkout('${escapeHtml(r.name).replace(/'/g,"\\'")}')">Start</button></div></div>`).join('')}
 
