@@ -58,7 +58,24 @@ canvas{width:100%;height:180px;display:block}
 label{font-size:12px;color:var(--muted);font-weight:700}
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:white;padding:11px 16px;border-radius:30px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:20}.toast.show{opacity:1}
 @media(min-width:600px){.app{padding-top:20px}.modal-back{align-items:center}.modal{border-radius:22px}}
-.guide-btn{border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:10px;padding:7px 10px;font-size:12px;font-weight:700}.guide-info{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:9px}.guide-info strong{display:block;font-size:12px;margin-bottom:5px}.guide-info p{font-size:13px;line-height:1.45;color:#68736b;margin:0}.guide-poses{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.guide-poses figure{margin:0;background:#f0f3f0;border-radius:10px;padding:6px;text-align:center}.guide-poses img{width:100%;aspect-ratio:1;object-fit:contain}.guide-poses figcaption{font-size:11px;color:var(--muted)}</style>
+.guide-btn{border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:10px;padding:7px 10px;font-size:12px;font-weight:700}.guide-info{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:9px}.guide-info strong{display:block;font-size:12px;margin-bottom:5px}.guide-info p{font-size:13px;line-height:1.45;color:#68736b;margin:0}.guide-poses{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.guide-poses figure{margin:0;background:#f0f3f0;border-radius:10px;padding:6px;text-align:center}.guide-poses img{width:100%;aspect-ratio:1;object-fit:contain}.guide-poses figcaption{font-size:11px;color:var(--muted)}
+/* Cosmic, clean visual theme */
+:root{color-scheme:dark;--bg:#080b1a;--card:#11172b;--ink:#f1f3ff;--muted:#a1abc9;--line:#293252;--accent:#8b7cff;--soft:#24264a;--danger:#ff8199;--shadow:0 12px 34px rgba(0,0,0,.24)}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(92,73,190,.22),transparent 38%),radial-gradient(ellipse at 100% 28%,rgba(27,166,197,.12),transparent 34%),var(--bg);color:var(--ink)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background-image:radial-gradient(1px 1px at 8% 12%,#fff 55%,transparent 100%),radial-gradient(1px 1px at 74% 19%,#a8b9ff 55%,transparent 100%),radial-gradient(1px 1px at 42% 62%,#fff 55%,transparent 100%),radial-gradient(1px 1px at 91% 83%,#a8b9ff 55%,transparent 100%);background-size:240px 220px}
+.brand span{color:#a99cff}.pill{background:#27264f;color:#c4bdff;border:1px solid #49427c}
+.card,.workout-card,.exercise,.guide-info{background:linear-gradient(145deg,rgba(22,29,54,.97),rgba(15,21,40,.97));border-color:var(--line);box-shadow:var(--shadow)}
+.btn{background:#292d4d;color:#f5f4ff}.btn.primary{background:linear-gradient(100deg,#7567ed,#4e9dd8);color:white}.btn.light{background:#25264c;color:#c7c1ff}.btn.ghost{color:#a8b2d0}
+.tabs{background:rgba(9,13,29,.92);border-color:#293252}.tab{color:#929dbb}.tab.active{background:#25264c;color:#c4bdff}
+.field,.modal input,.modal select{background:#0c1226;color:var(--ink);border-color:#303a60}
+.modal{background:#0d1328;color:var(--ink)}.modal-back{background:rgba(2,4,14,.76)}
+.coach{background:#1a2440;border-color:#303c64}.coach.up{background:#1d3040;border-color:#315d70}.coach.down{background:#392335;border-color:#71445a}.coach-title{color:#a99cff}.coach-detail,.guide-info p{color:#b3bdd9}
+.tag{background:#252b49;color:#b9c5e7}.guide-btn{background:#24264b;color:#c7c1ff;border-color:#454477}
+.guide-poses figure{background:#1a2440}.guide-poses figcaption{color:#b3bdd9}
+.guide-diagram{background:radial-gradient(ellipse at 50% 40%,rgba(123,105,255,.18),transparent 65%),#0c1329;border:1px solid #30395f;border-radius:12px;padding:10px;color:#aeb8d8}
+.diagram-label{font-size:10px;letter-spacing:1.4px;color:#9f96ff;font-weight:800}.guide-diagram svg{width:100%;height:auto;display:block}.diagram-caption{font-size:11px;text-align:center;color:#aeb8d8}
+.toast{background:#e9e8ff;color:#17172d}
+</style>
 </head>
 <body>
 <div class="app">
@@ -75,14 +92,14 @@ label{font-size:12px;color:var(--muted);font-weight:700}
 </div>
 <div class="section"><div class="row"><h2>Next workout</h2><span class="tag">Starter plan</span></div><div class="card" id="nextWorkout"></div></div>
 <div class="section"><div class="row"><h2>Quick actions</h2></div><div class="grid">
-<button class="btn primary" onclick="startWorkout('Full Body A')">＋ Start workout</button>
+<button class="btn primary" onclick="startWorkout('Workout 1 · Chest & Back')">＋ Start workout</button>
 <button class="btn light" onclick="openWeightModal()">＋ Log body weight</button>
 </div></div>
 <div class="section"><h2>Recent activity</h2><div id="recentActivity" class="stack"></div></div>
 </section>
 
 <section class="view" id="routines">
-<h1>Your routines</h1><div class="sub">A simple three-day full-body starting point. Edit it as you learn what works.</div>
+<h1>Your routines</h1><div class="sub">Three focused sessions to rotate through. Leave a recovery day between sessions where possible.</div>
 <div class="section stack" id="routineList"></div>
 <div class="section"><button class="btn light full" onclick="openCustomRoutine()">＋ Create custom workout</button></div>
 </section>
@@ -119,12 +136,14 @@ label{font-size:12px;color:var(--muted);font-weight:700}
 
 <script>
 const starterRoutines=[
-{name:'Full Body A',focus:'Squat + horizontal push/pull',exercises:[['Squat',3,6],['Bench Press',3,8],['Seated Cable Row',3,10],['Dumbbell Romanian Deadlift',3,10],['Plank',3,30]]},
-{name:'Full Body B',focus:'Hinge + vertical push/pull',exercises:[['Deadlift',3,5],['Overhead Press',3,8],['Lat Pulldown',3,10],['Dumbbell Split Squat',3,10],['Dumbbell Curl',2,12]]},
-{name:'Full Body C',focus:'Balanced strength + accessories',exercises:[['Leg Press',3,10],['Incline Dumbbell Press',3,10],['Chest Supported Row',3,10],['Leg Curl',3,12],['Lateral Raise',2,15]]}
+{name:'Workout 1 · Chest & Back',focus:'Supported chest and back strength',exercises:[['Chest Press Machine',3,10],['Incline Chest Press Machine',2,10],['Chest Supported Row',3,10],['Neutral Grip Lat Pulldown',3,10],['Cable Face Pull',2,12]]},
+{name:'Workout 2 · Arms & Core',focus:'Arms, trunk control and stability',exercises:[['Biceps Curl Machine',3,10],['Cable Triceps Pressdown',3,10],['Preacher Curl Machine',2,12],['Overhead Cable Triceps Extension',2,12],['Dead Bug',3,8],['Bird Dog',3,8],['Pallof Press',2,10]]},
+{name:'Workout 3 · Legs, Shoulders & Back',focus:'Leg strength, shoulders and posterior-chain support',exercises:[['Leg Press',3,10],['Seated Leg Curl',3,10],['Leg Extension',2,12],['Hip Thrust Machine',2,10],['Seated Shoulder Press Machine',2,10],['Reverse Pec Deck',2,12],['Seated Calf Raise',2,12],['Seated Back Extension Machine',1,10]]}
 ];
 const KEY='myFitness_v1';
-let data=JSON.parse(localStorage.getItem(KEY)||'null')||{routines:starterRoutines,history:[],weights:[]};
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{routines:starterRoutines,history:[],weights:[],recoveryCheckins:[]};
+if(!Array.isArray(data.recoveryCheckins))data.recoveryCheckins=[];
+if(data.routines&&data.routines.length===3&&['Full Body A','Full Body B','Full Body C'].every((n,i)=>data.routines[i]?.name===n)){data.routines=starterRoutines;save();}
 let active=null,seconds=90,timerInterval=null,running=false;
 const $=id=>document.getElementById(id);
 const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
