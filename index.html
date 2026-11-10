@@ -75,7 +75,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 .guide-diagram{background:radial-gradient(ellipse at 50% 40%,rgba(123,105,255,.18),transparent 65%),#0c1329;border:1px solid #30395f;border-radius:12px;padding:10px;color:#aeb8d8}
 .diagram-label{font-size:10px;letter-spacing:1.4px;color:#9f96ff;font-weight:800}.guide-diagram svg{width:100%;height:auto;display:block}.diagram-caption{font-size:11px;text-align:center;color:#aeb8d8}
 .toast{background:#e9e8ff;color:#17172d}
-.guide-diagram{background:radial-gradient(ellipse at 50% 40%,rgba(123,105,255,.18),transparent 65%),#0c1329;border:1px solid #30395f;border-radius:12px;padding:10px;color:#aeb8d8}.diagram-label{font-size:10px;letter-spacing:1.4px;color:#9f96ff;font-weight:800}.guide-diagram svg{width:100%;height:auto;display:block}.diagram-caption{font-size:11px;text-align:center;color:#aeb8d8}</style>
+.guide-diagram{background:radial-gradient(ellipse at 50% 40%,rgba(123,105,255,.18),transparent 65%),#0c1329;border:1px solid #30395f;border-radius:12px;padding:10px;color:#aeb8d8}.diagram-label{font-size:10px;letter-spacing:1.4px;color:#9f96ff;font-weight:800}.guide-diagram svg{width:100%;height:auto;display:block}.diagram-caption{font-size:11px;text-align:center;color:#aeb8d8}.guide-diagram{background:radial-gradient(ellipse at 50% 40%,rgba(123,105,255,.18),transparent 65%),#0c1329;border:1px solid #30395f;border-radius:12px;padding:10px;color:#aeb8d8}.guide-diagram .diagram-label{font-size:10px;letter-spacing:1.4px;color:#9f96ff;font-weight:800;margin-bottom:8px}.actual-poses{grid-template-columns:1fr 1fr;gap:8px}.actual-poses figure{background:#141d38;border:1px solid #30395f;border-radius:9px;padding:6px;min-width:0}.actual-poses img{width:100%;aspect-ratio:1;object-fit:contain;display:block}.actual-poses figcaption{font-size:10px;color:#b3bdd9;padding-top:4px}.actual-poses .image-missing{display:none}.diagram-note{font-size:11px;line-height:1.4;color:#c4c9e4;margin:9px 2px 0}.diagram-credit{font-size:10px;color:#8996b9;text-align:right;margin-top:7px}.diagram-credit a,.app-credit a{color:#a99cff}.app-credit{font-size:10px;text-align:center;color:#7f8bad;padding:6px 0 10px}</style>
 </head>
 <body>
 <div class="app">
@@ -123,6 +123,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 <div class="section card"><h2>Exercise progress</h2><div id="exerciseProgress" class="stack"></div></div><div class="section card"><h2>Back up your data</h2><div class="sub">Your workouts are saved in this browser on this device. Download a backup regularly so you can restore your history if you change phones or clear Safari data.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn primary" onclick="exportBackup()">Download backup</button><button class="btn light" onclick="document.getElementById(&quot;restoreFile&quot;).click()">Restore backup</button><input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div></div>
 </section>
 </main>
+<div class="app-credit">Exercise illustrations by <a href="https://repdb.co" target="_blank" rel="noopener">RepDB</a></div>
 </div>
 
 <nav class="tabs"><div class="tabbar">
@@ -179,11 +180,37 @@ const exerciseGuides={
 'Seated Calf Raise':['Calves','Seated calf raise machine','Place balls of feet on platform with knees under pad. Lower heels gently, then rise onto toes and pause.','Use a comfortable ankle range and avoid bouncing.','Standing calf raise holding support'],
 'Seated Back Extension Machine':['Lower-back extensors and trunk muscles','Seated back extension machine','Use the lightest setting and a small, comfortable range. Move smoothly without forcing the end position.','Optional, not essential. Only use if it feels comfortable and ideally after physiotherapist guidance. Stop if back or leg symptoms occur.','Bird dog or omit until assessed']
 };
+const exerciseIllustrations={
+'Chest Press Machine':{slug:'chest-press-machine',label:'Machine chest press'},
+'Incline Chest Press Machine':{slug:'incline-db-press',label:'Incline pressing movement',note:'Reference illustration shows the incline pressing path; your guide instructions describe the machine version.'},
+'Chest Supported Row':{slug:'chest-supported-machine-row',label:'Chest-supported machine row'},
+'Neutral Grip Lat Pulldown':{slug:'lat-pulldown',label:'Lat pulldown'},
+'Cable Face Pull':{slug:'face-pull',label:'Cable face pull'},
+'Biceps Curl Machine':{slug:'machine-bicep-curl',label:'Machine biceps curl'},
+'Cable Triceps Pressdown':{slug:'single-arm-tricep-pushdown',label:'Cable triceps pressdown',note:'Reference illustration shows a single-arm variation; use the same elbow path with your chosen attachment.'},
+'Preacher Curl Machine':{slug:'machine-preacher-curl',label:'Machine preacher curl'},
+'Overhead Cable Triceps Extension':{slug:'cable-overhead-tricep-extension',label:'Overhead cable triceps extension'},
+'Dead Bug':{slug:'dead-bug',label:'Dead bug'},
+'Bird Dog':{slug:'bird-dog',label:'Bird dog'},
+'Pallof Press':{slug:'cable-pallof-press',label:'Cable Pallof press'},
+'Leg Press':{slug:'leg-press',label:'Leg press machine'},
+'Seated Leg Curl':{slug:'seated-leg-curl',label:'Seated leg curl'},
+'Leg Extension':{slug:'leg-extension',label:'Leg extension machine'},
+'Hip Thrust Machine':{slug:'hip-thrust',label:'Hip thrust',note:'Reference illustration shows a hip thrust variation; your gym machine setup may look different.'},
+'Seated Shoulder Press Machine':{slug:'machine-shoulder-press',label:'Machine shoulder press'},
+'Reverse Pec Deck':{slug:'machine-reverse-fly',label:'Reverse fly machine'},
+'Seated Calf Raise':{slug:'seated-calf-raise',label:'Seated calf raise'},
+'Seated Back Extension Machine':{slug:'machine-back-extension',label:'Machine back extension'}
+};
 function guideDiagram(name){
- const group=/dead bug|bird dog|pallof/i.test(name)?'CORE STABILITY':/leg|hip thrust|calf/i.test(name)?'LOWER BODY':/back extension/i.test(name)?'TRUNK EXTENSION':/curl|triceps|face pull|pec deck|shoulder|lat pulldown|row/i.test(name)?'UPPER BODY':'CHEST PRESS';
- const isCore=group==='CORE STABILITY',isLower=group==='LOWER BODY',isBack=group==='TRUNK EXTENSION';
- const cue=isCore?'Brace gently · move one limb at a time':isLower?'Keep pelvis supported · controlled range':isBack?'Small range · no forced extension':'Keep torso supported · smooth motion';
- return '<div class="guide-diagram"><div class="diagram-label">'+group+'</div><svg viewBox="0 0 320 142" role="img" aria-label="Movement schematic for '+escapeHtml(name)+'"><defs><linearGradient id="guideGlow" x1="0" x2="1"><stop offset="0" stop-color="#8b7cff"/><stop offset="1" stop-color="#39d9e8"/></linearGradient></defs><path d="M18 119H302" stroke="#34405e" stroke-width="3" stroke-linecap="round"/><circle cx="76" cy="37" r="12" fill="#d8d4ff"/><path d="M76 51L76 89M76 61L48 79M76 61L104 79M76 89L57 116M76 89L95 116" stroke="#d8d4ff" stroke-width="8" stroke-linecap="round" fill="none"/><rect x="151" y="87" width="117" height="9" rx="4" fill="#455174"/><path d="M174 79V46M174 46L164 35M174 46L184 35" stroke="url(#guideGlow)" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M218 54H270M259 44L270 54L259 64" stroke="#39d9e8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="210" y="25" fill="#b7c2e7" font-size="9" text-anchor="middle">CONTROLLED MOVEMENT</text></svg><div class="diagram-caption">'+cue+'</div></div>';
+ const item=exerciseIllustrations[name];
+ if(!item)return '<div class="guide-diagram"><div class="diagram-label">ILLUSTRATION UNAVAILABLE</div><p class="diagram-caption">Use the written technique steps below and ask a trainer to demonstrate your setup.</p></div>';
+ const base='https://raw.githubusercontent.com/RepDB/exercise-dataset/main/images/flat/'+item.slug;
+ const note=item.note?'<p class="diagram-note">'+escapeHtml(item.note)+'</p>':'';
+ return '<div class="guide-diagram"><div class="diagram-label">'+escapeHtml(item.label.toUpperCase())+'</div><div class="guide-poses actual-poses">'+
+ '<figure><img loading="lazy" src="'+base+'-start.webp" alt="'+escapeHtml(name)+' starting position" onerror="this.closest(\'figure\').classList.add(\'image-missing\')"><figcaption>Start position</figcaption></figure>'+
+ '<figure><img loading="lazy" src="'+base+'-peak.webp" alt="'+escapeHtml(name)+' movement position" onerror="this.closest(\'figure\').classList.add(\'image-missing\')"><figcaption>Movement position</figcaption></figure>'+
+ '</div>'+note+'<div class="diagram-credit">Exercise illustration by <a href="https://repdb.co" target="_blank" rel="noopener">RepDB</a></div></div>';
 }
 function openExerciseGuide(name){
  const g=exerciseGuides[name]||['Target muscles depend on the movement','Check machine setup before loading','Start light and practise a controlled, comfortable range.','Keep your torso stable, breathe and stop if symptoms spread into your leg.','Ask a trainer or physiotherapist for a suitable alternative.'];
