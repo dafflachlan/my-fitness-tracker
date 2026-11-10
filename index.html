@@ -75,7 +75,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 .guide-diagram{background:radial-gradient(ellipse at 50% 40%,rgba(123,105,255,.18),transparent 65%),#0c1329;border:1px solid #30395f;border-radius:12px;padding:10px;color:#aeb8d8}
 .diagram-label{font-size:10px;letter-spacing:1.4px;color:#9f96ff;font-weight:800}.guide-diagram svg{width:100%;height:auto;display:block}.diagram-caption{font-size:11px;text-align:center;color:#aeb8d8}
 .toast{background:#e9e8ff;color:#17172d}
-</style>
+.guide-diagram{background:radial-gradient(ellipse at 50% 40%,rgba(123,105,255,.18),transparent 65%),#0c1329;border:1px solid #30395f;border-radius:12px;padding:10px;color:#aeb8d8}.diagram-label{font-size:10px;letter-spacing:1.4px;color:#9f96ff;font-weight:800}.guide-diagram svg{width:100%;height:auto;display:block}.diagram-caption{font-size:11px;text-align:center;color:#aeb8d8}</style>
 </head>
 <body>
 <div class="app">
@@ -119,6 +119,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 <h1>Your progress</h1><div class="sub">A record of the work you're putting in.</div>
 <div class="section card"><div class="row"><h2>Body weight</h2><button class="btn light small" onclick="openWeightModal()">＋ Add</button></div><div class="metric" id="latestWeight">—</div><div class="metric-label">Latest recorded weight</div><canvas id="weightChart" width="600" height="220"></canvas><div id="weightHistory" class="sub"></div></div>
 <div class="section card"><h2>Workout consistency</h2><div class="metric" id="allWorkouts">0</div><div class="metric-label">Completed workouts</div><div class="sub" id="lastWorkoutText">Your completed sessions will appear here.</div></div>
+<div class="section card"><div class="row"><div><h2>Next-day recovery check</h2><div class="sub">Track how your back and legs feel after training.</div></div><span class="tag">24-hour check</span></div><div id="recoverySummary" class="sub" style="margin:8px 0 12px">After your next workout, check in the following day.</div><button class="btn light full" onclick="openRecoveryCheckin()">Log recovery check-in</button></div>
 <div class="section card"><h2>Exercise progress</h2><div id="exerciseProgress" class="stack"></div></div><div class="section card"><h2>Back up your data</h2><div class="sub">Your workouts are saved in this browser on this device. Download a backup regularly so you can restore your history if you change phones or clear Safari data.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn primary" onclick="exportBackup()">Download backup</button><button class="btn light" onclick="document.getElementById(&quot;restoreFile&quot;).click()">Restore backup</button><input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div></div>
 </section>
 </main>
@@ -157,35 +158,45 @@ function startWorkout(name){let routine=data.routines.find(r=>r.name===name)||da
 
 
 const exerciseGuides={
-'Squat':['Quads, glutes and core','Barbell or bodyweight; squat rack for barbell','Stand about shoulder-width apart. Brace your stomach, sit your hips down and back, then drive through your whole foot to stand.','Keep your whole foot planted; use a depth you can control.','Goblet squat, leg press or box squat'],
-'Bench Press':['Chest, triceps and front shoulders','Flat bench and barbell','Lie with eyes under the bar. Set shoulder blades back, lower the bar under control to mid-chest, then press up.','Keep feet planted; avoid bouncing the bar; use a spotter for heavy sets.','Dumbbell bench press, push-up or chest press machine'],
-'Seated Cable Row':['Mid-back, lats, rear shoulders and biceps','Low cable row machine and handle','Sit tall. Pull the handle towards your lower ribs, drawing elbows back. Pause, then let your arms reach forward without rounding your back.','Avoid rocking your torso; lead with elbows; keep shoulders relaxed.','Chest-supported dumbbell row, one-arm dumbbell row or band row'],
-'Dumbbell Romanian Deadlift':['Hamstrings, glutes and back stabilisers','Pair of dumbbells','Hold dumbbells in front of your thighs. Soften knees, push hips backwards and lower weights close to your legs. Feel a hamstring stretch, then drive hips forward to stand.','Think hips back; keep weights close; maintain a comfortable spine.','Barbell Romanian deadlift, cable pull-through or hip hinge'],
-'Plank':['Abdominals, deep core, shoulders and glutes','Floor mat','Place forearms on the floor with elbows under shoulders. Extend legs, brace your stomach and keep a straight line from head to heels.','Do not let hips sag; keep breathing; stop when position breaks down.','Knee plank, dead bug or bird dog'],
-'Deadlift':['Glutes, hamstrings, quads, back and grip','Barbell and plates','Stand with bar over mid-foot. Hinge down, grip the bar, brace, then push the floor away and stand with the bar close to your legs.','Brace before each rep; keep the bar close; start light.','Dumbbell deadlift, trap-bar deadlift or Romanian deadlift'],
-'Overhead Press':['Shoulders, triceps and upper chest','Barbell or dumbbells','Start with weight around upper chest height. Brace your core and press overhead without leaning far back. Lower under control.','Keep ribs stacked over hips; use a pain-free range.','Seated dumbbell press, landmine press or machine shoulder press'],
-'Lat Pulldown':['Lats, upper back and biceps','Lat pulldown cable machine and handle','Sit with thighs secured. Pull the bar towards your upper chest by driving elbows down, then return slowly.','Pull in front of your head; avoid swinging; think elbows down.','Assisted pull-up, band pulldown or one-arm cable pulldown'],
-'Leg Press':['Quads, glutes and hamstrings','Leg press machine','Sit with back supported and feet shoulder-width on platform. Lower until knees bend comfortably, then press away without locking knees.','Keep hips and lower back against pad; control the sled.','Goblet squat, hack squat or step-up'],
-'Leg Curl':['Hamstrings','Seated or lying leg curl machine','Align knees with the machine pivot. Curl heels towards your body, pause, then return slowly.','Adjust machine to your body; avoid jerking the weight.','Stability-ball leg curl, slider leg curl or Romanian deadlift'],
-'Lateral Raise':['Side deltoids and upper traps','Light dumbbells or cable machine','With a slight bend in your elbows, raise arms out to the sides to about shoulder height, then lower slowly.','Use light weights; avoid swinging; keep shoulders relaxed.','Cable lateral raise or machine lateral raise']
+'Chest Press Machine':['Chest, triceps and front shoulders','Seated chest press machine','Set seat so handles start around mid-chest. Keep your back supported, press forward smoothly, then return with control.','Keep shoulders comfortably back; do not force a deep stretch.','Incline chest press machine or light dumbbell press'],
+'Incline Chest Press Machine':['Upper chest, triceps and front shoulders','Incline chest press machine','Set seat so handles start near upper-chest level. Keep back against pad and press forward smoothly.','Use a comfortable range and avoid arching your lower back.','Chest press machine'],
+'Chest Supported Row':['Mid-back, lats, rear shoulders and biceps','Chest-supported row machine','Set chest pad to support your torso. Pull elbows back, pause, then lower slowly.','Keep chest against pad; avoid shrugging or jerking.','Seated cable row with upright torso'],
+'Neutral Grip Lat Pulldown':['Lats, upper back and biceps','Lat pulldown machine with parallel-grip handle','Sit with thighs secured. Pull handles towards upper chest by driving elbows down, then return slowly.','Keep torso steady; avoid leaning far back or pulling behind your neck.','Standard lat pulldown'],
+'Cable Face Pull':['Rear shoulders, upper back and rotator cuff','Cable machine with rope attachment','Set cable around face height. Pull rope towards forehead, separating hands, then return slowly.','Use a light load and avoid arching your lower back.','Reverse pec deck'],
+'Biceps Curl Machine':['Biceps','Biceps curl machine','Adjust seat so elbows line up with machine pivot. Curl handles smoothly, then lower slowly.','Keep upper arms supported and avoid swinging.','Seated cable curl'],
+'Cable Triceps Pressdown':['Triceps','Cable machine with straight bar or rope','Keep elbows by your sides. Press handle down until arms are straight, then return slowly.','Keep shoulders relaxed and torso still.','Triceps press machine'],
+'Preacher Curl Machine':['Biceps','Preacher curl machine','Set upper arms on pad. Curl handles towards shoulders, then lower until arms are comfortably extended.','Do not force elbows into a locked position.','Supported cable curl'],
+'Overhead Cable Triceps Extension':['Triceps','Cable machine with rope','Stand in a stable stance with rope behind your head. Extend elbows, then bend slowly.','Start very light; keep ribs stacked over hips and avoid leaning back.','Seated triceps extension machine'],
+'Dead Bug':['Deep abdominals and trunk stabilisers','Exercise mat','Lie on your back with hips and knees bent. Gently brace, lower one arm and opposite leg, then return and alternate.','Keep lower back comfortably steady; shorten range if it arches or symptoms appear.','Heel taps or bent-knee marches'],
+'Bird Dog':['Deep core, spinal stabilisers and glutes','Exercise mat','Start on hands and knees. Reach one arm and opposite leg long, keeping hips level. Return slowly and alternate.','Avoid twisting or lifting the leg too high; move slowly and breathe.','Quadruped arm reach or leg reach separately'],
+'Pallof Press':['Obliques and deep trunk stabilisers','Cable machine or resistance band','Stand side-on to cable. Hold handle at chest, brace gently and press hands out without rotating. Return slowly.','Use a light load; keep hips and shoulders facing forward.','Standing band Pallof press'],
+'Leg Press':['Quads, glutes and hamstrings','Leg press machine','Set feet about shoulder-width. Lower platform only as far as you can keep pelvis and lower back supported, then press smoothly.','Do not let lower back round away from pad; avoid locking knees.','Supported sit-to-stand'],
+'Seated Leg Curl':['Hamstrings','Seated leg curl machine','Align knees with machine pivot and set pad above ankles. Curl heels down and back, then return slowly.','Keep hips against seat and avoid jerking.','Lying leg curl machine'],
+'Leg Extension':['Quadriceps','Leg extension machine','Align knees with machine pivot. Extend legs smoothly, pause, then lower with control.','Use a comfortable range and avoid snapping knees straight.','Supported sit-to-stand'],
+'Hip Thrust Machine':['Glutes and hamstrings','Hip thrust machine','Position pad across hips and feet flat. Drive through feet to raise hips until torso and thighs align, then lower slowly.','Keep ribs down; finish with glutes rather than arching lower back.','Glute bridge on mat'],
+'Seated Shoulder Press Machine':['Shoulders and triceps','Seated shoulder press machine','Adjust seat so handles begin around shoulder height. Keep back supported and press up smoothly, then lower under control.','Use a comfortable range; avoid flaring ribs or arching lower back.','Neutral-grip dumbbell shoulder press with back support'],
+'Reverse Pec Deck':['Rear shoulders and upper back','Reverse pec deck machine','Face machine pad and hold handles. Sweep arms out and back in a controlled arc, then return slowly.','Keep chest supported and use a light load without shrugging.','Cable rear-delt fly with chest support'],
+'Seated Calf Raise':['Calves','Seated calf raise machine','Place balls of feet on platform with knees under pad. Lower heels gently, then rise onto toes and pause.','Use a comfortable ankle range and avoid bouncing.','Standing calf raise holding support'],
+'Seated Back Extension Machine':['Lower-back extensors and trunk muscles','Seated back extension machine','Use the lightest setting and a small, comfortable range. Move smoothly without forcing the end position.','Optional, not essential. Only use if it feels comfortable and ideally after physiotherapist guidance. Stop if back or leg symptoms occur.','Bird dog or omit until assessed']
 };
+function guideDiagram(name){
+ const group=/dead bug|bird dog|pallof/i.test(name)?'CORE STABILITY':/leg|hip thrust|calf/i.test(name)?'LOWER BODY':/back extension/i.test(name)?'TRUNK EXTENSION':/curl|triceps|face pull|pec deck|shoulder|lat pulldown|row/i.test(name)?'UPPER BODY':'CHEST PRESS';
+ const isCore=group==='CORE STABILITY',isLower=group==='LOWER BODY',isBack=group==='TRUNK EXTENSION';
+ const cue=isCore?'Brace gently · move one limb at a time':isLower?'Keep pelvis supported · controlled range':isBack?'Small range · no forced extension':'Keep torso supported · smooth motion';
+ return '<div class="guide-diagram"><div class="diagram-label">'+group+'</div><svg viewBox="0 0 320 142" role="img" aria-label="Movement schematic for '+escapeHtml(name)+'"><defs><linearGradient id="guideGlow" x1="0" x2="1"><stop offset="0" stop-color="#8b7cff"/><stop offset="1" stop-color="#39d9e8"/></linearGradient></defs><path d="M18 119H302" stroke="#34405e" stroke-width="3" stroke-linecap="round"/><circle cx="76" cy="37" r="12" fill="#d8d4ff"/><path d="M76 51L76 89M76 61L48 79M76 61L104 79M76 89L57 116M76 89L95 116" stroke="#d8d4ff" stroke-width="8" stroke-linecap="round" fill="none"/><rect x="151" y="87" width="117" height="9" rx="4" fill="#455174"/><path d="M174 79V46M174 46L164 35M174 46L184 35" stroke="url(#guideGlow)" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M218 54H270M259 44L270 54L259 64" stroke="#39d9e8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="210" y="25" fill="#b7c2e7" font-size="9" text-anchor="middle">CONTROLLED MOVEMENT</text></svg><div class="diagram-caption">'+cue+'</div></div>';
+}
 function openExerciseGuide(name){
- const g=exerciseGuides[name]||['Muscles depend on the movement','Check the exercise and gym setup','Start with a light load. Move slowly through a comfortable range and stop if you feel sharp pain. Ask a qualified trainer if unsure.','Prioritise control over weight; use a range you can manage; build load gradually.','Choose a similar movement that trains the same muscle group'];
- const q=encodeURIComponent(name+' exercise demonstration proper form');
- const imageSlugs={'Squat':'squat','Bench Press':'barbell-bench-press','Seated Cable Row':'seated-cable-row','Dumbbell Romanian Deadlift':'dumbbell-romanian-deadlift','Plank':'plank','Deadlift':'barbell-deadlift','Overhead Press':'barbell-overhead-press','Lat Pulldown':'lat-pulldown','Leg Press':'leg-press','Leg Curl':'leg-curl','Lateral Raise':'dumbbell-lateral-raise'};
- const slug=imageSlugs[name]||name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
- const base='https://raw.githubusercontent.com/RepDB/exercise-dataset/main/images/flat/';
+ const g=exerciseGuides[name]||['Target muscles depend on the movement','Check machine setup before loading','Start light and practise a controlled, comfortable range.','Keep your torso stable, breathe and stop if symptoms spread into your leg.','Ask a trainer or physiotherapist for a suitable alternative.'];
  $('modal').innerHTML='<div class="row"><div><div class="sub">EXERCISE GUIDE</div><h2>'+escapeHtml(name)+'</h2></div><button class="btn ghost" onclick="closeModal()">✕</button></div>'+
- '<div class="guide-info"><strong>Exercise demonstration</strong><div class="guide-poses"><figure><img src="'+base+slug+'-start.webp" alt="'+escapeHtml(name)+' starting position" onerror="this.parentElement.style.display=\'none\'"><figcaption>Start</figcaption></figure><figure><img src="'+base+slug+'-peak.webp" alt="'+escapeHtml(name)+' movement position" onerror="this.parentElement.style.display=\'none\'"><figcaption>Movement</figcaption></figure></div><div class="sub">Illustrations by RepDB</div></div>' +
+ '<div class="guide-info"><strong>Movement illustration</strong>'+guideDiagram(name)+'</div>'+
  '<div class="guide-info"><strong>Muscles worked</strong><p>'+escapeHtml(g[0])+'</p></div>'+
  '<div class="guide-info"><strong>Equipment</strong><p>'+escapeHtml(g[1])+'</p></div>'+
  '<div class="guide-info"><strong>How to do it</strong><p>'+escapeHtml(g[2])+'</p></div>'+
  '<div class="guide-info"><strong>Technique tips</strong><p>'+escapeHtml(g[3])+'</p></div>'+
  '<div class="guide-info"><strong>Alternatives</strong><p>'+escapeHtml(g[4])+'</p></div>'+
- '<a class="btn primary full" style="display:block;text-align:center;text-decoration:none;margin-top:13px" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+q+'">Watch exercise demonstration ↗</a>';
+ '<a class="btn primary full" style="display:block;text-align:center;text-decoration:none;margin-top:13px" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+encodeURIComponent(name+' exercise demonstration proper form')+'">Watch exercise demonstration ↗</a>';
  openModal();
 }
-
 function previousExercise(name){
   if(isTimedExercise(name))return null;
   for(const session of data.history){
@@ -290,9 +301,32 @@ function importBackup(event){
  reader.readAsText(file);
 }
 function renderDashboard(){let now=new Date(),week=new Date(now);week.setDate(now.getDate()-6);let thisWeek=data.history.filter(h=>new Date(h.start)>=new Date(week.toDateString())).length;$('weekCount').textContent=thisWeek;$('sessionCount').textContent=data.history.length;$('exerciseCount').textContent=data.history.reduce((n,h)=>n+h.exercises.length,0);let latest=data.weights.at(-1);$('bodyMetric').textContent=latest?latest.value+' kg':'—';let next=data.routines[data.history.length%Math.max(1,data.routines.length)]||data.routines[0];$('nextWorkout').innerHTML=next?`<div class="row"><div><strong>${escapeHtml(next.name)}</strong><div class="sub" style="margin-top:5px">${escapeHtml(next.focus||'Custom workout')}</div></div><button class="btn primary small" onclick="startWorkout('${escapeHtml(next.name).replace(/'/g,"\\'")}')">Start</button></div>`:'Create your first routine';$('recentActivity').innerHTML=data.history.slice(0,3).map(h=>`<div class="workout-card"><div><strong>${escapeHtml(h.name)}</strong><p>${new Date(h.start).toLocaleDateString()} · ${h.exercises.length} exercises</p></div><span class="tag">Completed</span></div>`).join('')||'<div class="empty">Your completed workouts will show here.</div>'}
+function openRecoveryCheckin(){
+ const session=data.history[0];if(!session){toast('Complete a workout first');return}
+ const existing=(data.recoveryCheckins||[]).find(x=>x.sessionStart===session.start);
+ $('modal').innerHTML='<div class="row"><div><div class="sub">RECOVERY CHECK-IN</div><h2>How are you feeling?</h2></div><button class="btn ghost" onclick="closeModal()">✕</button></div>'+
+ '<div class="sub" style="margin-bottom:12px">Thinking about the day after '+escapeHtml(session.name)+'.</div>'+
+ '<label>BACK AND LEG RESPONSE</label><select id="recoveryStatus"><option value="good">Good — no unusual symptoms</option><option value="sore">General muscle soreness only</option><option value="back">More lower-back discomfort or stiffness</option><option value="radiating">Pain, tingling, numbness or weakness into a leg</option></select>'+
+ '<label>OPTIONAL NOTES</label><input id="recoveryNote" placeholder="e.g. legs sore, back felt normal" value="'+escapeHtml(existing?.note||'')+'">'+
+ '<button class="btn primary full" onclick="saveRecoveryCheckin()">Save check-in</button>';
+ if(existing)$('recoveryStatus').value=existing.status;
+ openModal();
+}
+function saveRecoveryCheckin(){
+ const session=data.history[0],status=$('recoveryStatus').value,note=$('recoveryNote').value.trim();
+ const labels={good:'Good — no unusual symptoms',sore:'General muscle soreness',back:'Lower-back discomfort or stiffness',radiating:'Leg symptoms (pain, tingling, numbness or weakness)'};
+ data.recoveryCheckins=data.recoveryCheckins||[];
+ data.recoveryCheckins=data.recoveryCheckins.filter(x=>x.sessionStart!==session.start);
+ data.recoveryCheckins.unshift({sessionStart:session.start,status,label:labels[status],note,date:new Date().toISOString()});
+ save();closeModal();renderDashboard();renderProgress();
+ if(status==='radiating')toast('Pause aggravating training and seek clinical advice');
+ else if(status==='back')toast('Keep loads steady or reduce and monitor symptoms');
+ else toast('Recovery check-in saved');
+}
 function renderProgress(){let latest=data.weights.at(-1);$('latestWeight').textContent=latest?latest.value+' kg':'—';$('allWorkouts').textContent=data.history.length;$('lastWorkoutText').textContent=data.history.length?'Last session: '+new Date(data.history[0].start).toLocaleDateString():'Complete your first workout to start building your history.';$('weightHistory').textContent=data.weights.length?data.weights.length+' weigh-in'+(data.weights.length===1?'':'s')+' recorded':'No body weight entries yet.';drawChart();let best={};data.history.forEach(h=>h.exercises.forEach(ex=>ex.sets.forEach(s=>{let w=parseFloat(s.weight);if(w>0&&(!best[ex.name]||w>best[ex.name]))best[ex.name]=w})));let entries=Object.entries(best).sort((a,b)=>b[1]-a[1]);$('exerciseProgress').innerHTML=entries.map(([n,w])=>`<div class="row"><span>${escapeHtml(n)}</span><strong>${w} kg</strong></div>`).join('')||'<div class="empty">Log weights during workouts to see your strongest lifts here.</div>'}
 function drawChart(){let c=$('weightChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);if(!data.weights.length){ctx.fillStyle='#8a938c';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.fillText('Your weight trend will appear here',w/2,h/2);return}let vals=data.weights.map(x=>x.value),min=Math.min(...vals)-1,max=Math.max(...vals)+1;if(max===min)max=min+2;let pts=vals.map((v,i)=>({x:35+(w-70)*(vals.length===1?.5:i/(vals.length-1)),y:h-30-(v-min)/(max-min)*(h-60)}));ctx.strokeStyle='#246b4b';ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fillStyle='#246b4b';ctx.fill()});ctx.fillStyle='#778078';ctx.font='12px sans-serif';ctx.textAlign='left';ctx.fillText(max.toFixed(1)+' kg',4,17);ctx.fillText(min.toFixed(1)+' kg',4,h-8)}
 renderDashboard();renderRoutines();renderProgress();updateTimer();
+
 </script>
 </body>
 </html>
