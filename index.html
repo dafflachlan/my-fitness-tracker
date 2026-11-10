@@ -144,7 +144,7 @@ const starterRoutines=[
 const KEY='myFitness_v1';
 let data=JSON.parse(localStorage.getItem(KEY)||'null')||{routines:starterRoutines,history:[],weights:[],recoveryCheckins:[]};
 if(!Array.isArray(data.recoveryCheckins))data.recoveryCheckins=[];
-if(data.routines&&data.routines.length===3&&['Full Body A','Full Body B','Full Body C'].every((n,i)=>data.routines[i]?.name===n)){data.routines=starterRoutines;save();}
+if(data.routines&&data.routines.length===3&&['Full Body A','Full Body B','Full Body C'].every((n,i)=>data.routines[i]?.name===n)){data.routines=starterRoutines;localStorage.setItem(KEY,JSON.stringify(data));}
 let active=null,seconds=90,timerInterval=null,running=false;
 const $=id=>document.getElementById(id);
 const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
@@ -209,27 +209,17 @@ function previousExercise(name){
   return null;
 }
 function overloadAdvice(ex){
-  if(ex.type==='timed'||isTimedExercise(ex.name))return {kind:'new',title:'Build your hold time gradually',detail:'Aim for controlled holds of '+(ex.targetSeconds||30)+' seconds. Stop if your form breaks down.',button:'',weight:null};
-  const prev=previousExercise(ex.name);
-  if(!prev) return {kind:'new',title:'First time tracking this exercise',detail:'Choose a comfortable starting weight and aim for '+ex.targetSets+' sets of '+ex.targetReps+' reps.',button:'',weight:null};
-  const weights=prev.sets.map(s=>Number(s.weight));
-  const reps=prev.sets.map(s=>Number(s.reps));
-  const load=Math.max(...weights);
-  const allAtLoad=prev.sets.filter(s=>Number(s.weight)===load);
-  const allHit=allAtLoad.length>=Math.min(ex.targetSets,2) && allAtLoad.every(s=>Number(s.reps)>=ex.targetReps);
-  const mostlyMissed=reps.filter(r=>r<Math.max(1,ex.targetReps-2)).length>=Math.ceil(reps.length/2);
-  const isLower=/squat|deadlift|leg press|leg curl|romanian|split squat|calf/i.test(ex.name);
-  const increment=isLower?2.5:1.25;
-  const roundHalf=n=>Math.round(n*2)/2;
-  if(allHit){
-    const next=roundHalf(load+increment);
-    return {kind:'up',title:'Ready to increase the weight',detail:'Last time you completed your target reps at '+load+' kg. Try '+next+' kg and aim for '+ex.targetSets+' × '+ex.targetReps+'.',weight:next,button:'Use '+next+' kg'};
-  }
-  if(mostlyMissed){
-    const next=roundHalf(load*0.95);
-    return {kind:'down',title:'Build confidence with a lighter load',detail:'Last time several sets fell short of the target. Try around '+next+' kg and focus on controlled reps.',weight:next,button:'Use '+next+' kg'};
-  }
-  return {kind:'same',title:'Keep the weight steady',detail:'Last time you used '+load+' kg. Keep that load and try to add 1 rep to the sets that fell short of '+ex.targetReps+'.',weight:load,button:'Use '+load+' kg'};
+ if(ex.type==='timed'||isTimedExercise(ex.name))return {kind:'new',title:'Build control before duration',detail:'Keep each hold smooth and comfortable. Stop before your form starts to change.',button:'',weight:null};
+ const prev=previousExercise(ex.name);
+ if(!prev)return {kind:'new',title:'Find a comfortable starting load',detail:'Start lighter than you think you need. Finish each set with around 3 good reps still available.',button:'',weight:null};
+ const sets=prev.sets,load=Math.max(...sets.map(s=>Number(s.weight)||0));
+ const allHit=sets.length>=Math.min(ex.targetSets,2)&&sets.every(s=>Number(s.reps)>=ex.targetReps);
+ const checkin=(data.recoveryCheckins||[]).find(x=>x.sessionStart===prev.session.start);
+ if(!allHit)return {kind:'same',title:'Keep the load steady',detail:'Repeat '+load+' kg and build towards all target reps with controlled technique. Do not force extra reps.',weight:load,button:'Use '+load+' kg'};
+ if(!checkin)return {kind:'same',title:'Repeat this load once more',detail:'You reached your target reps. Log how your back and legs felt the following day before increasing.',weight:load,button:'Use '+load+' kg'};
+ if(checkin.status!=='good'&&checkin.status!=='sore')return {kind:'same',title:'Hold off on increasing',detail:'Your last recovery check suggests keeping the same load or reducing it if needed. Prioritise comfortable movement and recovery.',weight:load,button:'Use '+load+' kg'};
+ const next=Math.round((load+1)*2)/2;
+ return {kind:'up',title:'Small increase may be appropriate',detail:'You hit all target reps and logged a good recovery response. Try the smallest increase ('+next+' kg) only if warm-up sets also feel comfortable.',weight:next,button:'Use '+next+' kg'};
 }
 function applySuggestedWeight(i,weight){
   if(!active || weight===null) return;
@@ -300,28 +290,9 @@ function importBackup(event){
  }catch(err){alert(err.message||'Could not read this backup file.')}event.target.value='';};
  reader.readAsText(file);
 }
-function renderDashboard(){let now=new Date(),week=new Date(now);week.setDate(now.getDate()-6);let thisWeek=data.history.filter(h=>new Date(h.start)>=new Date(week.toDateString())).length;$('weekCount').textContent=thisWeek;$('sessionCount').textContent=data.history.length;$('exerciseCount').textContent=data.history.reduce((n,h)=>n+h.exercises.length,0);let latest=data.weights.at(-1);$('bodyMetric').textContent=latest?latest.value+' kg':'—';let next=data.routines[data.history.length%Math.max(1,data.routines.length)]||data.routines[0];$('nextWorkout').innerHTML=next?`<div class="row"><div><strong>${escapeHtml(next.name)}</strong><div class="sub" style="margin-top:5px">${escapeHtml(next.focus||'Custom workout')}</div></div><button class="btn primary small" onclick="startWorkout('${escapeHtml(next.name).replace(/'/g,"\\'")}')">Start</button></div>`:'Create your first routine';$('recentActivity').innerHTML=data.history.slice(0,3).map(h=>`<div class="workout-card"><div><strong>${escapeHtml(h.name)}</strong><p>${new Date(h.start).toLocaleDateString()} · ${h.exercises.length} exercises</p></div><span class="tag">Completed</span></div>`).join('')||'<div class="empty">Your completed workouts will show here.</div>'}
-function openRecoveryCheckin(){
- const session=data.history[0];if(!session){toast('Complete a workout first');return}
- const existing=(data.recoveryCheckins||[]).find(x=>x.sessionStart===session.start);
- $('modal').innerHTML='<div class="row"><div><div class="sub">RECOVERY CHECK-IN</div><h2>How are you feeling?</h2></div><button class="btn ghost" onclick="closeModal()">✕</button></div>'+
- '<div class="sub" style="margin-bottom:12px">Thinking about the day after '+escapeHtml(session.name)+'.</div>'+
- '<label>BACK AND LEG RESPONSE</label><select id="recoveryStatus"><option value="good">Good — no unusual symptoms</option><option value="sore">General muscle soreness only</option><option value="back">More lower-back discomfort or stiffness</option><option value="radiating">Pain, tingling, numbness or weakness into a leg</option></select>'+
- '<label>OPTIONAL NOTES</label><input id="recoveryNote" placeholder="e.g. legs sore, back felt normal" value="'+escapeHtml(existing?.note||'')+'">'+
- '<button class="btn primary full" onclick="saveRecoveryCheckin()">Save check-in</button>';
- if(existing)$('recoveryStatus').value=existing.status;
- openModal();
-}
-function saveRecoveryCheckin(){
- const session=data.history[0],status=$('recoveryStatus').value,note=$('recoveryNote').value.trim();
- const labels={good:'Good — no unusual symptoms',sore:'General muscle soreness',back:'Lower-back discomfort or stiffness',radiating:'Leg symptoms (pain, tingling, numbness or weakness)'};
- data.recoveryCheckins=data.recoveryCheckins||[];
- data.recoveryCheckins=data.recoveryCheckins.filter(x=>x.sessionStart!==session.start);
- data.recoveryCheckins.unshift({sessionStart:session.start,status,label:labels[status],note,date:new Date().toISOString()});
- save();closeModal();renderDashboard();renderProgress();
- if(status==='radiating')toast('Pause aggravating training and seek clinical advice');
- else if(status==='back')toast('Keep loads steady or reduce and monitor symptoms');
- else toast('Recovery check-in saved');
+function renderDashboard(){let now=new Date(),week=new Date(now);week.setDate(now.getDate()-6);let thisWeek=data.history.filter(h=>new Date(h.start)>=new Date(week.toDateString())).length;$('weekCount').textContent=thisWeek;$('sessionCount').textContent=data.history.length;$('exerciseCount').textContent=data.history.reduce((n,h)=>n+h.exercises.length,0);let latest=data.weights.at(-1);$('bodyMetric').textContent=latest?latest.value+' kg':'—';let next=data.routines[data.history.length%Math.max(1,data.routines.length)]||data.routines[0];$('nextWorkout').innerHTML=next?'<div class="row"><div><strong>'+escapeHtml(next.name)+'</strong><div class="sub" style="margin-top:5px">'+escapeHtml(next.focus||'Custom workout')+'</div></div><button class="btn primary small" onclick="startWorkout(&quot;'+escapeHtml(next.name)+'&quot;)">Start</button></div>':'Create your first routine';$('recentActivity').innerHTML=data.history.slice(0,3).map(h=>'<div class="workout-card"><div><strong>'+escapeHtml(h.name)+'</strong><p>'+new Date(h.start).toLocaleDateString()+' · '+h.exercises.length+' exercises</p></div><span class="tag">Completed</span></div>').join('')||'<div class="empty">Your completed workouts will show here.</div>';
+ const last=data.history[0],check=last&&(data.recoveryCheckins||[]).find(x=>x.sessionStart===last.start);
+ const summary=$('recoverySummary');if(summary)summary.textContent=!last?'Complete a workout, then check in the following day.':check?'Last check-in: '+check.label+' · '+new Date(check.date).toLocaleDateString():'Your latest workout is ready for a next-day check-in.';
 }
 function renderProgress(){let latest=data.weights.at(-1);$('latestWeight').textContent=latest?latest.value+' kg':'—';$('allWorkouts').textContent=data.history.length;$('lastWorkoutText').textContent=data.history.length?'Last session: '+new Date(data.history[0].start).toLocaleDateString():'Complete your first workout to start building your history.';$('weightHistory').textContent=data.weights.length?data.weights.length+' weigh-in'+(data.weights.length===1?'':'s')+' recorded':'No body weight entries yet.';drawChart();let best={};data.history.forEach(h=>h.exercises.forEach(ex=>ex.sets.forEach(s=>{let w=parseFloat(s.weight);if(w>0&&(!best[ex.name]||w>best[ex.name]))best[ex.name]=w})));let entries=Object.entries(best).sort((a,b)=>b[1]-a[1]);$('exerciseProgress').innerHTML=entries.map(([n,w])=>`<div class="row"><span>${escapeHtml(n)}</span><strong>${w} kg</strong></div>`).join('')||'<div class="empty">Log weights during workouts to see your strongest lifts here.</div>'}
 function drawChart(){let c=$('weightChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);if(!data.weights.length){ctx.fillStyle='#8a938c';ctx.font='15px sans-serif';ctx.textAlign='center';ctx.fillText('Your weight trend will appear here',w/2,h/2);return}let vals=data.weights.map(x=>x.value),min=Math.min(...vals)-1,max=Math.max(...vals)+1;if(max===min)max=min+2;let pts=vals.map((v,i)=>({x:35+(w-70)*(vals.length===1?.5:i/(vals.length-1)),y:h-30-(v-min)/(max-min)*(h-60)}));ctx.strokeStyle='#246b4b';ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fillStyle='#246b4b';ctx.fill()});ctx.fillStyle='#778078';ctx.font='12px sans-serif';ctx.textAlign='left';ctx.fillText(max.toFixed(1)+' kg',4,17);ctx.fillText(min.toFixed(1)+' kg',4,h-8)}
