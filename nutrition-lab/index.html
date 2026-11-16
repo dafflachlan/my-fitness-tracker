@@ -237,11 +237,16 @@ async function decodeBarcodeWithZXing(img){
 }
 async function lookupBarcode(codeOverride){
  const code=(codeOverride||document.getElementById('barcodeInput').value).trim();
- if(!/^\\d{8,14}$/.test(code)){document.getElementById('barcodeResult').innerHTML='<p class="sub">Enter a valid 8–14 digit barcode.</p>';return}
- const box=document.getElementById('barcodeResult');box.innerHTML='<p class="sub">Searching Open Food Facts…</p>';
+ const box=document.getElementById('barcodeResult'),status=document.getElementById('barcodeScanStatus');
+ if(!/^\\d{8,14}$/.test(code)){box.innerHTML='<p class="sub">Enter a valid 8–14 digit barcode.</p>';return}
+ box.innerHTML='<p class="sub">Looking up barcode…</p>';
+ if(status)status.textContent='Barcode detected. Checking the food database…';
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),9000);
  try{
-  const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,quantity,nutriments,serving_size');
-  const j=await r.json();if(j.status!==1)throw Error('Product not found in Open Food Facts.');
+  const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,quantity,nutriments,serving_size',{signal:controller.signal,headers:{Accept:'application/json'}});
+  if(!r.ok)throw Error(r.status===429?'The food database is busy right now. Please try again shortly.':'The food database returned an error (HTTP '+r.status+'). Please try again.');
+  const j=await r.json();
+  if(j.status!==1||!j.product)throw Error('This barcode was read successfully, but the product is not listed in Open Food Facts yet. Try searching its name in the food database or add its nutrition details manually.');
   const p=j.product,nt=p.nutriments||{};
   const val=(...keys)=>{for(const k of keys){const v=nt[k];if(v!==undefined&&v!==null&&v!==''&&Number.isFinite(Number(v)))return Number(v)}return null};
   window.currentProduct={name:p.product_name||'Packaged food',brand:p.brands||'',quantity:p.quantity||'',servingSize:p.serving_size||'',barcode:code,
@@ -251,8 +256,12 @@ async function lookupBarcode(codeOverride){
    salt:val('salt_100g'),calcium:val('calcium_100g')===null?null:val('calcium_100g')*1000,iron:val('iron_100g')===null?null:val('iron_100g')*1000,potassium:val('potassium_100g')===null?null:val('potassium_100g')*1000,magnesium:val('magnesium_100g')===null?null:val('magnesium_100g')*1000,zinc:val('zinc_100g')===null?null:val('zinc_100g')*1000};
   box.innerHTML='<div class="mutedline"></div><h3>'+esc(window.currentProduct.name)+'</h3><p class="small">'+esc(window.currentProduct.brand)+' · '+esc(window.currentProduct.quantity)+'</p><div class="field"><label>Serving amount (grams)</label><input id="barcodeGrams" type="number" min="1" max="5000" value="100" oninput="updateBarcodePreview()"></div><div id="barcodeNutrients"></div><button class="btn" style="width:100%;margin-top:12px" onclick="addBarcodeProduct()">＋ Add product to diary</button>';
   updateBarcodePreview();
-  document.getElementById('barcodeScanStatus').textContent='Product found. Review the nutrition values and serving amount below.';
- }catch(err){box.innerHTML='<p class="sub">'+esc(err.message||'Could not find that product.')+' Try another barcode or enter food details manually.</p>'}
+  if(status)status.textContent='Product found. Review the nutrition values and serving amount below.';
+ }catch(err){
+  const message=err.name==='AbortError'?'The food database took too long to respond. Please try again, or search the food by name instead.':(err.message||'Could not look up this barcode.');
+  box.innerHTML='<p class="sub">'+esc(message)+'</p>';
+  if(status)status.textContent=message;
+ }finally{clearTimeout(timeout)}
 }
 function updateBarcodePreview(){
  const p=window.currentProduct;if(!p)return;
