@@ -295,6 +295,6 @@ function downloadBackup(){let b=new Blob([JSON.stringify(db,null,2)],{type:'appl
 function restoreBackup(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!Array.isArray(x.foods)||!x.goals)throw Error();db=x;persist();alert('Backup restored.')}catch{alert('That backup file is not valid.')}};r.readAsText(f)}
 function exportData(){let cols=['date','meal','name','serving','calories','protein','carbs','fat','fibre','sugar','satFat','sodium','calcium','iron','potassium','magnesium'];let csv=[cols.join(','),...db.foods.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');let a=document.createElement('a'),u=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.href=u;a.download='nutrition-lab-food-diary.csv';a.click();URL.revokeObjectURL(u)}
 function clearData(){if(confirm('This permanently clears all Nutrition Lab entries on this device. Continue?')){db={foods:[],water:{},goals:{calories:2000,protein:120,carbs:220,fat:70,water:2000}};persist()}}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{}));
 render();
 </script></body></html>
