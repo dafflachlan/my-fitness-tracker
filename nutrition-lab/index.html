@@ -188,7 +188,7 @@ async function lookupBarcode(codeOverride){
    cal:val('energy-kcal_100g')??(val('energy_100g')!==null?val('energy_100g')/4.184:null),
    protein:val('proteins_100g'),carbs:val('carbohydrates_100g'),fat:val('fat_100g'),fibre:val('fiber_100g','fibers_100g'),sugar:val('sugars_100g'),
    satFat:val('saturated-fat_100g'),sodium:val('sodium_100g')===null?null:val('sodium_100g')*1000,
-   salt:val('salt_100g'),calcium:val('calcium_100g'),iron:val('iron_100g'),potassium:val('potassium_100g'),magnesium:val('magnesium_100g'),zinc:val('zinc_100g')};
+   salt:val('salt_100g'),calcium:val('calcium_100g')===null?null:val('calcium_100g')*1000,iron:val('iron_100g')===null?null:val('iron_100g')*1000,potassium:val('potassium_100g')===null?null:val('potassium_100g')*1000,magnesium:val('magnesium_100g')===null?null:val('magnesium_100g')*1000,zinc:val('zinc_100g')===null?null:val('zinc_100g')*1000};
   box.innerHTML='<div class="mutedline"></div><h3>'+esc(window.currentProduct.name)+'</h3><p class="small">'+esc(window.currentProduct.brand)+' · '+esc(window.currentProduct.quantity)+'</p><div class="field"><label>Serving amount (grams)</label><input id="barcodeGrams" type="number" min="1" max="5000" value="100" oninput="updateBarcodePreview()"></div><div id="barcodeNutrients"></div><button class="btn" style="width:100%;margin-top:12px" onclick="addBarcodeProduct()">＋ Add product to diary</button>';
   updateBarcodePreview();
   document.getElementById('barcodeScanStatus').textContent='Product found. Review the nutrition values and serving amount below.';
@@ -197,7 +197,7 @@ async function lookupBarcode(codeOverride){
 function updateBarcodePreview(){
  const p=window.currentProduct;if(!p)return;
  const grams=Math.max(1,Number(document.getElementById('barcodeGrams')?.value)||100),factor=grams/100;
- const fields=[['Energy','cal','kcal'],['Protein','protein','g'],['Carbohydrates','carbs','g'],['Total fat','fat','g'],['Saturated fat','satFat','g'],['Fibre','fibre','g'],['Sugars','sugar','g'],['Sodium','sodium','mg'],['Salt','salt','g'],['Calcium','calcium','g'],['Iron','iron','g'],['Potassium','potassium','g'],['Magnesium','magnesium','g'],['Zinc','zinc','g']];
+ const fields=[['Energy','cal','kcal'],['Protein','protein','g'],['Carbohydrates','carbs','g'],['Total fat','fat','g'],['Saturated fat','satFat','g'],['Fibre','fibre','g'],['Sugars','sugar','g'],['Sodium','sodium','mg'],['Salt','salt','g'],['Calcium','calcium','mg'],['Iron','iron','mg'],['Potassium','potassium','mg'],['Magnesium','magnesium','mg'],['Zinc','zinc','mg']];
  document.getElementById('barcodeNutrients').innerHTML='<div class="notice">Values for '+grams+'g. Nutrients not listed on the product record are shown as unavailable.</div>'+fields.filter(([l,k])=>p[k]!==null).map(([l,k,u])=>'<div class="row meal"><span class="sub">'+l+'</span><b>'+(p[k]*factor).toFixed(2).replace(/\\.?0+$/,'')+' '+u+'</b></div>').join('');
 }
 function addBarcodeProduct(){
