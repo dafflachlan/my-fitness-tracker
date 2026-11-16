@@ -4,8 +4,57 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090d18"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>Nutrition Lab</title>
 <link rel="manifest" href="manifest.json">
 <style>
-:root{color-scheme:dark;--bg:#090d18;--panel:#111827;--panel2:#182235;--line:#26334a;--muted:#91a0b8;--text:#f4f6fb;--accent:#9b8cff;--green:#57d6a0;--yellow:#f6c96a;--red:#ff8a9a}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% -10%,#28204e 0,transparent 38%),var(--bg);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:calc(88px + env(safe-area-inset-bottom))}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px 24px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.brand{font-size:12px;letter-spacing:2px;color:#b7adff;font-weight:800}.date{font-size:12px;color:var(--muted);margin-top:5px}.pill{border:1px solid var(--line);background:#121a2a;border-radius:99px;padding:8px 11px;color:#c8d0e0;font-size:12px}.screen{display:none}.screen.active{display:block}.hero{font-size:27px;font-weight:750;letter-spacing:-.7px;margin:3px 0 5px}.sub{color:var(--muted);font-size:13px;line-height:1.45}.card{background:linear-gradient(145deg,#151e30,#101725);border:1px solid var(--line);border-radius:19px;padding:16px;margin:14px 0}.card h3{font-size:14px;margin:0 0 13px}.kcal{font-size:39px;font-weight:800;letter-spacing:-1.5px}.small{font-size:12px;color:var(--muted)}.bar{height:8px;background:#27334a;border-radius:20px;overflow:hidden;margin:10px 0}.fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#8879ff,#b3a8ff)}.macrogrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.macro{background:#0d1422;border:1px solid #26334a;border-radius:13px;padding:11px}.macro strong{display:block;font-size:19px;margin:5px 0}.macro span{font-size:11px;color:var(--muted)}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.btn{border:0;border-radius:13px;padding:13px 15px;background:linear-gradient(135deg,#8173f4,#a18cff);color:white;font-weight:700}.btn.secondary{background:#202b40;border:1px solid #34415a;color:#e4e8f2}.btn.ghost{background:transparent;border:1px solid var(--line);color:#cdd5e5}.btn.danger{background:#3a202b;color:#ffb9c3}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}.action{background:#171f31;border:1px solid #2b3850;border-radius:15px;padding:15px 8px;text-align:center;color:#f3f3fa}.action .ico{font-size:22px;display:block;margin-bottom:7px}.action small{font-size:11px;color:#bdc6d8}.meal{padding:12px 0;border-top:1px solid #26334a}.meal:first-of-type{border-top:0}.mealname{font-weight:650}.mealmeta{font-size:12px;color:var(--muted);margin-top:4px}.field{display:flex;flex-direction:column;gap:6px;margin:11px 0}.field label{font-size:12px;color:#aab6ca}.field input,.field select,.field textarea{width:100%;background:#0c1422;border:1px solid #34415a;color:white;border-radius:11px;padding:12px;min-width:0}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.hidden{display:none!important}.nav{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:9px 8px calc(9px + env(safe-area-inset-bottom));background:#0c1220ed;border-top:1px solid #26334a;display:grid;grid-template-columns:repeat(5,1fr);backdrop-filter:blur(16px)}.nav button{background:none;border:0;color:#8592aa;font-size:10px;padding:5px 1px}.nav button b{display:block;font-size:19px;margin-bottom:4px;font-weight:500}.nav button.active{color:#b5aaff}.tag{font-size:10px;color:#b6aaff;background:#28234a;padding:5px 8px;border-radius:99px}.water{display:flex;gap:7px;flex-wrap:wrap}.glass{width:34px;height:40px;border:1px solid #52617d;border-radius:8px 8px 11px 11px;background:#111c2d;color:#8ecbff}.glass.full{background:linear-gradient(0deg,#3e8fce 0 75%,#18263b 75%);border-color:#75baf0}.mutedline{height:1px;background:var(--line);margin:13px 0}.notice{background:#25213e;border:1px solid #51477d;padding:12px;border-radius:12px;color:#d7d0ff;font-size:12px;line-height:1.5}.foodphoto{width:100%;max-height:240px;object-fit:cover;border-radius:14px;margin-top:10px}.empty{text-align:center;padding:22px 10px;color:var(--muted);font-size:13px}.stat{font-size:22px;font-weight:750}.foot{font-size:11px;color:#77849b;line-height:1.5;margin-top:14px}
+:root{color-scheme:light;--bg:#f5f9f7;--panel:#ffffff;--panel2:#edf6f0;--line:#dce9e1;--muted:#718397;--text:#153047;--accent:#087b58;--green:#15966b;--blue:#269bd1;--yellow:#d6a63b;--red:#d65b68}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 90% -10%,#e0f2eb 0,transparent 42%),linear-gradient(180deg,#fbfdfc 0%,var(--bg) 100%);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px 24px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.brand{font-size:12px;letter-spacing:2px;color:#16845f;font-weight:800}
+.date{font-size:12px;color:var(--muted);margin-top:5px}
+.pill{border:1px solid var(--line);background:#f0f7f3;border-radius:99px;padding:8px 11px;color:#35566a;font-size:12px}
+.screen{display:none}.screen.active{display:block}
+.hero{font-size:27px;font-weight:750;letter-spacing:-.7px;margin:3px 0 5px;color:#153047}
+.sub{color:var(--muted);font-size:13px;line-height:1.45}
+.card{background:linear-gradient(145deg,#ffffff,#fbfdfc);border:1px solid #e1ece5;border-radius:19px;padding:16px;margin:14px 0;box-shadow:0 5px 18px rgba(26,67,52,.055)}
+.card h3{font-size:14px;margin:0 0 13px;color:#193b50}
+.kcal{font-size:39px;font-weight:800;letter-spacing:-1.5px;color:#145b43}
+.small{font-size:12px;color:var(--muted)}
+.bar{height:8px;background:#e5edf0;border-radius:20px;overflow:hidden;margin:10px 0}
+.fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#13875e,#62bd79)}
+.macrogrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.macro{background:#f4faf6;border:1px solid #e0ece4;border-radius:13px;padding:11px}
+.macro strong{display:block;font-size:19px;margin:5px 0;color:#18394e}
+.macro span{font-size:11px;color:var(--muted)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.btn{border:0;border-radius:13px;padding:13px 15px;background:linear-gradient(135deg,#08734f,#15996b);color:white;font-weight:700;box-shadow:0 3px 9px rgba(8,115,79,.14)}
+.btn.secondary{background:#e9f4ee;border:1px solid #cfe3d6;color:#176447;box-shadow:none}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:#31566a;box-shadow:none}
+.btn.danger{background:#fff0f0;border:1px solid #f2d5d8;color:#ad3948;box-shadow:none}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}
+.action{background:#fff;border:1px solid #deebe3;border-radius:15px;padding:15px 8px;text-align:center;color:#193b50;box-shadow:0 3px 12px rgba(26,67,52,.04)}
+.action .ico{font-size:22px;display:block;margin-bottom:7px}.action small{font-size:11px;color:var(--muted)}
+.meal{padding:12px 0;border-top:1px solid #e5eee8}.meal:first-of-type{border-top:0}
+.mealname{font-weight:650;color:#18394e}.mealmeta{font-size:12px;color:var(--muted);margin-top:4px}
+.field{display:flex;flex-direction:column;gap:6px;margin:11px 0}.field label{font-size:12px;color:#557083}
+.field input,.field select,.field textarea{width:100%;background:#fff;border:1px solid #d5e3dc;color:#193b50;border-radius:11px;padding:12px;min-width:0;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#45a985;box-shadow:0 0 0 3px rgba(69,169,133,.12)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.hidden{display:none!important}
+.nav{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:9px 8px calc(9px + env(safe-area-inset-bottom));background:rgba(255,255,255,.94);border-top:1px solid #e0eae4;display:grid;grid-template-columns:repeat(5,1fr);backdrop-filter:blur(16px);box-shadow:0 -4px 18px rgba(26,67,52,.05)}
+.nav button{background:none;border:0;color:#8495a1;font-size:10px;padding:5px 1px}.nav button b{display:block;font-size:19px;margin-bottom:4px;font-weight:500}
+.nav button.active{color:#087b58}
+.tag{font-size:10px;color:#176b50;background:#e5f3e9;padding:5px 8px;border-radius:99px}
+.water{display:flex;gap:7px;flex-wrap:wrap}
+.glass{width:34px;height:40px;border:1px solid #b9dce9;border-radius:8px 8px 11px 11px;background:#f0f8fb;color:#2088b8}
+.glass.full{background:linear-gradient(0deg,#42a9d4 0 75%,#eaf6fa 75%);border-color:#63b7d8}
+.mutedline{height:1px;background:var(--line);margin:13px 0}
+.notice{background:#edf7fb;border:1px solid #cce7f1;padding:12px;border-radius:12px;color:#245c75;font-size:12px;line-height:1.5}
+.foodphoto{width:100%;max-height:240px;object-fit:cover;border-radius:14px;margin-top:10px}
+.empty{text-align:center;padding:22px 10px;color:var(--muted);font-size:13px}
+.stat{font-size:22px;font-weight:750;color:#145b43}
+.foot{font-size:11px;color:#84949d;line-height:1.5;margin-top:14px}
+a{color:#1687b5}
 </style></head>
 <body><main class="app">
 <header class="top"><div><div class="brand">NUTRITION LAB</div><div class="date" id="todayDate"></div></div><span class="pill" id="syncBadge">● Local save</span></header>
