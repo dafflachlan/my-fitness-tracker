@@ -13,7 +13,7 @@
 <div class="hero">Your nutrition, in focus.</div><div class="sub">A clearer picture of what you're eating, one meal at a time.</div>
 <div class="card"><div class="row"><h3>Daily energy</h3><span class="tag">TODAY</span></div><div class="row" style="align-items:baseline"><div><span class="kcal" id="calories">0</span> <span class="small">kcal eaten</span></div><div class="small"><span id="remaining">—</span> left</div></div><div class="bar"><div class="fill" id="calBar" style="width:0%"></div></div><div class="row small"><span>Daily target</span><span id="targetLabel">2,000 kcal</span></div><div class="mutedline"></div><div class="macrogrid"><div class="macro"><span>PROTEIN</span><strong id="protein">0g</strong><span id="proteinGoal">Goal 120g</span></div><div class="macro"><span>CARBS</span><strong id="carbs">0g</strong><span id="carbsGoal">Goal 220g</span></div><div class="macro"><span>FAT</span><strong id="fat">0g</strong><span id="fatGoal">Goal 70g</span></div></div></div>
 <div class="actions"><button class="action" onclick="go('recipes')"><span class="ico">🍽️</span><small>Find a meal</small></button><button class="action" onclick="go('camera')"><span class="ico">📷</span><small>Photo meal</small></button><button class="action" onclick="go('barcode')"><span class="ico">▥</span><small>Barcode</small></button><button class="action" onclick="go('manual')"><span class="ico">＋</span><small>Manual entry</small></button></div>
-<div class="card"><div class="row"><h3>Water intake</h3><span class="small" id="waterCount">0 / 8 glasses</span></div><div class="water" id="waterGlasses"></div><div class="row" style="margin-top:13px"><span class="small">250 ml per glass</span><button class="btn secondary" onclick="addWater()">＋ Add glass</button></div></div>
+<div class="card" id="foodSearchCard"><div class="row"><h3>Search the food database</h3><span class="tag">USDA</span></div><p class="sub">Search ingredients and foods, then view detailed nutrients per 100g or your chosen serving.</p><div class="row" style="gap:8px"><input id="usdaQuery" placeholder="e.g. tuna, brown rice, banana" style="flex:1;min-width:0;background:#0c1422;border:1px solid #34415a;color:white;border-radius:11px;padding:12px" onkeydown="if(event.key==='Enter')searchUSDA()"><button class="btn" onclick="searchUSDA()">Search</button></div><div id="usdaStatus" class="small" style="margin-top:10px"></div><div id="usdaResults"></div><div id="usdaDetail"></div><div class="foot">USDA FoodData Central · Generic foods and branded products. Nutrient coverage varies by food and data source; unreported values are shown as unavailable, not zero.</div></div><div class="card"><div class="row"><h3>Water intake</h3><span class="small" id="waterCount">0 / 8 glasses</span></div><div class="water" id="waterGlasses"></div><div class="row" style="margin-top:13px"><span class="small">250 ml per glass</span><button class="btn secondary" onclick="addWater()">＋ Add glass</button></div></div>
 <div class="card"><div class="row"><h3>Today's food</h3><button class="btn ghost" onclick="go('diary')">View diary</button></div><div id="todayMeals"></div></div>
 <div class="card"><h3>Nutrient snapshot</h3><div id="microSnapshot" class="grid2"></div><div class="foot">Micronutrient totals are only as complete as the food data entered or returned by the database.</div></div>
 </section>
@@ -26,6 +26,48 @@
 <section id="profile" class="screen"><div class="hero">Your settings</div><p class="sub">Personalise your daily targets and manage your data.</p><div class="card"><h3>Daily targets</h3><div class="grid2"><div class="field"><label>Calories (kcal)</label><input id="goalCalories" type="number" value="2000"></div><div class="field"><label>Protein (g)</label><input id="goalProtein" type="number" value="120"></div><div class="field"><label>Carbs (g)</label><input id="goalCarbs" type="number" value="220"></div><div class="field"><label>Fat (g)</label><input id="goalFat" type="number" value="70"></div><div class="field"><label>Water goal (ml)</label><input id="goalWater" type="number" value="2000"></div></div><button class="btn" onclick="saveGoals()">Save targets</button></div><div class="card"><h3>Cloud backup</h3><span class="tag">NOT CONNECTED</span><p class="sub">Your entries are currently saved on this device. Secure cross-device sync needs a cloud database project and sign-in credentials. No data is uploaded yet.</p><div class="notice">Next setup: connect a private Supabase project, enable authentication and create the user-scoped food diary tables. We'll keep your data private and never put a service-role key in this app.</div></div><div class="card"><h3>Your data</h3><p class="sub">Download a backup or restore a previous backup.</p><div class="grid2"><button class="btn secondary" onclick="downloadBackup()">Download backup</button><label class="btn ghost" style="text-align:center">Restore backup<input type="file" accept="application/json" class="hidden" onchange="restoreBackup(event)"></label></div><button class="btn danger" style="width:100%;margin-top:12px" onclick="clearData()">Clear all app data</button></div></section>
 </main><nav class="nav"><button class="active" data-tab="home" onclick="go('home')"><b>⌂</b>Today</button><button data-tab="camera" onclick="go('camera')"><b>▧</b>Photo</button><button data-tab="diary" onclick="go('diary')"><b>☷</b>Diary</button><button data-tab="recipes" onclick="go('recipes')"><b>♨</b>Meals</button><button data-tab="insights" onclick="go('insights')"><b>◷</b>Insights</button><button data-tab="profile" onclick="go('profile')"><b>⚙</b>Profile</button></nav>
 <script>
+const USDA_URL='https://wrcyrrjgfkdlpvplkbeo.supabase.co/functions/v1/food-search';
+const USDA_PUBLIC_KEY='sb_publishable_wSt_TvUEMjE1l_KO2YkguA_XnQojpyQ';
+let selectedUSDAFood=null, selectedUSDADetail=null;
+async function searchUSDA(){
+ const q=document.getElementById('usdaQuery').value.trim(),status=document.getElementById('usdaStatus'),results=document.getElementById('usdaResults'),detail=document.getElementById('usdaDetail');
+ if(q.length<2){status.textContent='Enter at least two characters.';return}
+ status.textContent='Searching FoodData Central…';results.innerHTML='';detail.innerHTML='';
+ try{
+  const r=await fetch(USDA_URL+'?q='+encodeURIComponent(q),{headers:{apikey:USDA_PUBLIC_KEY}});
+  const data=await r.json();if(!r.ok)throw Error(data.error||'Search failed.');
+  const foods=data.foods||[];status.textContent=foods.length?foods.length+' results. Select a food to view its nutrients.':'No foods found. Try a broader search.';
+  results.innerHTML=foods.map(f=>'<button class="btn secondary" style="width:100%;text-align:left;margin-top:8px" onclick="loadUSDAFood('+Number(f.fdcId)+')"><b>'+esc(f.description||'Unnamed food')+'</b><br><span class="small">'+esc(f.brandOwner||f.dataType||'USDA food')+' · '+esc(f.dataType||'')+'</span></button>').join('');
+ }catch(e){status.textContent=e.message||'Could not search the food database.'}
+}
+async function loadUSDAFood(id){
+ const detail=document.getElementById('usdaDetail'),status=document.getElementById('usdaStatus');
+ status.textContent='Loading full nutrient details…';detail.innerHTML='';
+ try{
+  const r=await fetch(USDA_URL+'?fdcId='+encodeURIComponent(id),{headers:{apikey:USDA_PUBLIC_KEY}});
+  const food=await r.json();if(!r.ok)throw Error(food.error||'Could not load food details.');
+  selectedUSDADetail=food;selectedUSDAFood=food;
+  const nutrients=(food.foodNutrients||[]).map(x=>({name:x.nutrient?.name||x.name||'Nutrient',unit:x.nutrient?.unitName||x.unitName||'',amount:x.amount??x.value??null})).filter(x=>x.amount!==null&&Number.isFinite(Number(x.amount)));
+  const mapped=mapUSDANutrients(nutrients);
+  detail.innerHTML='<div class="mutedline"></div><h3>'+esc(food.description||'Selected food')+'</h3><p class="small">'+esc(food.brandOwner||food.dataType||'USDA FoodData Central')+' · Nutrient values are generally per 100g.</p><div class="field"><label>Serving weight (grams)</label><input id="usdaGrams" type="number" min="1" max="5000" value="100" oninput="updateUSDAValues()"></div><div id="usdaNutrientValues"></div><button class="btn" style="width:100%;margin-top:12px" onclick="addUSDAFoodToDiary()">＋ Add this food to diary</button>';
+  updateUSDAValues();status.textContent='Food details loaded.';
+ }catch(e){status.textContent=e.message||'Could not load food details.'}
+}
+function mapUSDANutrients(items){
+ const find=(terms,unit)=>{const x=items.find(n=>terms.some(t=>n.name.toLowerCase()===t||n.name.toLowerCase().includes(t))&&(!unit||n.unit.toLowerCase()===unit));return x?Number(x.amount):null};
+ return {calories:find(['energy'], 'kcal'),protein:find(['protein'], 'g'),carbs:find(['carbohydrate, by difference','carbohydrate'], 'g'),fat:find(['total lipid (fat)','total fat'], 'g'),fibre:find(['fiber, total dietary','dietary fiber','fibre'], 'g'),sugar:find([' sugars, total including nlea','total sugars','sugars'], 'g'),satFat:find(['fatty acids, total saturated','saturated fat'], 'g'),sodium:find(['sodium, na'], 'mg'),calcium:find(['calcium, ca'], 'mg'),iron:find(['iron, fe'], 'mg'),potassium:find(['potassium, k'], 'mg'),magnesium:find(['magnesium, mg'], 'mg'),zinc:find(['zinc, zn'], 'mg')};
+}
+function updateUSDAValues(){
+ if(!selectedUSDADetail)return;const grams=Math.max(1,Number(document.getElementById('usdaGrams')?.value)||100),factor=grams/100;
+ const items=(selectedUSDADetail.foodNutrients||[]).map(x=>({name:x.nutrient?.name||x.name||'Nutrient',unit:x.nutrient?.unitName||x.unitName||'',amount:x.amount??x.value??null})).filter(x=>x.amount!==null&&Number.isFinite(Number(x.amount)));
+ const all=items.map(x=>'<div class="row meal"><span class="sub">'+esc(x.name)+'</span><b>'+((Number(x.amount)*factor).toFixed(3).replace(/\.0+$/,''))+' '+esc(x.unit)+'</b></div>').join('');
+ document.getElementById('usdaNutrientValues').innerHTML='<div class="notice">Values below are scaled to '+grams+'g. Only nutrients reported by this USDA record are shown.</div>'+all;
+}
+function addUSDAFoodToDiary(){
+ if(!selectedUSDADetail)return;const grams=Math.max(1,Number(document.getElementById('usdaGrams')?.value)||100),items=(selectedUSDADetail.foodNutrients||[]).map(x=>({name:x.nutrient?.name||x.name||'Nutrient',unit:x.nutrient?.unitName||x.unitName||'',amount:x.amount??x.value??null})).filter(x=>x.amount!==null&&Number.isFinite(Number(x.amount))),m=mapUSDANutrients(items),scale=v=>v===null?0:Math.round(v*grams/100*100)/100;
+ db.foods.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:today(),name:selectedUSDADetail.description||'USDA food',meal:'Snack',serving:grams+'g',calories:scale(m.calories),protein:scale(m.protein),carbs:scale(m.carbs),fat:scale(m.fat),fibre:scale(m.fibre),sugar:scale(m.sugar),satFat:scale(m.satFat),sodium:scale(m.sodium),calcium:scale(m.calcium),iron:scale(m.iron),potassium:scale(m.potassium),magnesium:scale(m.magnesium),zinc:scale(m.zinc),source:'USDA FoodData Central',fdcId:selectedUSDADetail.fdcId});
+ persist();go('home');alert('Food added to your diary. Values not reported by USDA were left blank/zero in the current diary fields.');
+}
 const KEY='nutritionLab_v1';
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||{foods:[],water:{},goals:{calories:2000,protein:120,carbs:220,fat:70,water:2000}};
 const today=()=>new Date().toLocaleDateString('en-CA');
