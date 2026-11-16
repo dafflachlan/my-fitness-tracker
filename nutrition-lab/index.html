@@ -18,7 +18,7 @@
 <div class="card"><h3>Nutrient snapshot</h3><div id="microSnapshot" class="grid2"></div><div class="foot">Micronutrient totals are only as complete as the food data entered or returned by the database.</div></div>
 </section>
 <section id="camera" class="screen"><div class="hero">Photograph a meal</div><p class="sub">Take a photo or choose an existing image. AI meal recognition will be connected through a secure analysis service.</p><div class="card"><label class="btn" style="display:block;text-align:center">📷 Open camera<input id="photoInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="previewPhoto(event)"></label><div id="photoPreview"></div><div id="photoNotice" class="notice" style="margin-top:12px">Photo capture is ready. Automatic ingredient and portion recognition needs a secure AI endpoint; you can still attach a photo and log the meal manually below.</div><button class="btn secondary" style="width:100%;margin-top:12px" onclick="go('manual')">Enter meal details</button></div></section>
-<section id="barcode" class="screen"><div class="hero">Scan packaged food</div><p class="sub">Look up a product by barcode using Open Food Facts.</p><div class="card"><div class="field"><label>Barcode number</label><input id="barcodeInput" inputmode="numeric" placeholder="Enter or scan barcode"></div><button class="btn" style="width:100%" onclick="lookupBarcode()">Find product</button><div id="barcodeResult"></div><div class="foot">Camera barcode scanning can be added as a dedicated scanner view. Manual barcode entry works now.</div></div></section>
+<section id="barcode" class="screen"><div class="hero">Scan packaged food</div><p class="sub">Take a photo of a barcode or upload an image. Nutrition Lab will read the barcode and look up the product and its available nutrients.</p><div class="card"><label class="btn" style="display:block;text-align:center">📷 Take barcode photo / Choose image<input id="barcodePhoto" type="file" accept="image/*" capture="environment" class="hidden" onchange="scanBarcodePhoto(event)"></label><div id="barcodePhotoPreview"></div><div id="barcodeScanStatus" class="small" style="margin-top:10px">Point the camera at the barcode, take a clear photo and hold the barcode flat in the frame.</div><div class="mutedline"></div><div class="field"><label>Or enter barcode number</label><input id="barcodeInput" inputmode="numeric" placeholder="Enter barcode"></div><button class="btn secondary" style="width:100%" onclick="lookupBarcode()">Look up barcode</button><div id="barcodeResult"></div><div class="foot">Product details and nutrition are supplied by Open Food Facts. Coverage depends on whether the product has been added to its database.</div></div></section>
 <section id="manual" class="screen"><div class="hero">Add food</div><p class="sub">Enter a meal or individual ingredient. Nutrients are recorded per serving.</p><div class="card"><form id="foodForm" onsubmit="saveFood(event)"><div class="field"><label>Food / meal name</label><input id="foodName" required placeholder="e.g. Chicken, rice and broccoli"></div><div class="grid2"><div class="field"><label>Meal</label><select id="mealType"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div><div class="field"><label>Serving size</label><input id="serving" placeholder="e.g. 1 plate / 250g"></div></div><div class="field"><label>Calories (kcal)</label><input id="fCalories" type="number" min="0" step="1" required placeholder="0"></div><div class="grid3"><div class="field"><label>Protein (g)</label><input id="fProtein" type="number" min="0" step=".1" value="0"></div><div class="field"><label>Carbs (g)</label><input id="fCarbs" type="number" min="0" step=".1" value="0"></div><div class="field"><label>Fat (g)</label><input id="fFat" type="number" min="0" step=".1" value="0"></div></div><div class="mutedline"></div><div class="grid2"><div class="field"><label>Fibre (g)</label><input id="fFibre" type="number" min="0" step=".1" value="0"></div><div class="field"><label>Zinc (mg)</label><input id="fZinc" type="number" min="0" step=".1" value="0"></div><div class="field"><label>Sugar (g)</label><input id="fSugar" type="number" min="0" step=".1" value="0"></div><div class="field"><label>Saturated fat (g)</label><input id="fSatFat" type="number" min="0" step=".1" value="0"></div><div class="field"><label>Sodium (mg)</label><input id="fSodium" type="number" min="0" step="1" value="0"></div><div class="field"><label>Calcium (mg)</label><input id="fCalcium" type="number" min="0" step="1" value="0"></div><div class="field"><label>Iron (mg)</label><input id="fIron" type="number" min="0" step=".1" value="0"></div><div class="field"><label>Potassium (mg)</label><input id="fPotassium" type="number" min="0" step="1" value="0"></div><div class="field"><label>Magnesium (mg)</label><input id="fMagnesium" type="number" min="0" step="1" value="0"></div></div><button class="btn" style="width:100%;margin-top:8px">Save food to diary</button></form></div></section>
 <section id="diary" class="screen"><div class="hero">Food diary</div><p class="sub">Your logged meals, grouped by day.</p><div class="card"><div class="row"><h3>Today's entries</h3><button class="btn ghost" onclick="exportData()">Export CSV</button></div><div id="diaryList"></div></div></section>
 <section id="recipes" class="screen"><div class="hero">Meals &amp; recipes</div><p class="sub">Find practical meals built around the nutrients you want to focus on. Nutrition values are estimates per serving.</p><div class="card"><h3>What would you like more of?</h3><div class="field"><label>Choose a nutrient</label><select id="recipeFocus" onchange="renderRecipes()"><option value="protein">Protein</option><option value="zinc">Zinc</option><option value="iron">Iron</option><option value="magnesium">Magnesium</option><option value="calcium">Calcium</option><option value="fibre">Fibre</option></select></div><div class="field"><label>Search existing recipes</label><input id="recipeSearch" placeholder="e.g. tuna, pasta, rice, chickpeas" oninput="renderRecipes()"></div><div class="field"><label>Build a recipe from one ingredient</label><input id="ingredientInput" placeholder="Try tuna, pasta, rice, eggs, potato..."></div><button class="btn" style="width:100%" onclick="buildIngredientRecipe()">Create recipe ideas</button><p class="small" id="recipeIntro"></p></div><div id="recipeResults"></div><div class="foot">Recipe nutrition is approximate and varies with brands, ingredient sizes and preparation. A food being rich in a nutrient does not mean you need more of it; use your overall diet and professional advice for individual needs.</div></section>
@@ -137,7 +137,76 @@ function removeFood(id){if(confirm('Remove this food entry?')){db.foods=db.foods
 function saveFood(e){e.preventDefault();let x={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:today(),name:document.getElementById('foodName').value.trim(),meal:document.getElementById('mealType').value,serving:document.getElementById('serving').value,calories:n('fCalories'),protein:n('fProtein'),carbs:n('fCarbs'),fat:n('fFat'),fibre:n('fFibre'),zinc:n('fZinc'),sugar:n('fSugar'),satFat:n('fSatFat'),sodium:n('fSodium'),calcium:n('fCalcium'),iron:n('fIron'),potassium:n('fPotassium'),magnesium:n('fMagnesium')};db.foods.push(x);e.target.reset();['fProtein','fCarbs','fFat','fFibre','fZinc','fSugar','fSatFat','fSodium','fCalcium','fIron','fPotassium','fMagnesium'].forEach(id=>document.getElementById(id).value=0);persist();go('home')}
 function saveGoals(){db.goals={calories:n('goalCalories'),protein:n('goalProtein'),carbs:n('goalCarbs'),fat:n('goalFat'),water:n('goalWater')};persist();alert('Targets saved.')}
 function previewPhoto(e){let file=e.target.files[0];if(!file)return;let url=URL.createObjectURL(file);document.getElementById('photoPreview').innerHTML='<img class="foodphoto" src="'+url+'" alt="Selected meal photo"><p class="small">'+esc(file.name)+' · '+Math.round(file.size/1024)+' KB</p>'}
-async function lookupBarcode(){let code=document.getElementById('barcodeInput').value.trim();if(!/^\d{8,14}$/.test(code)){alert('Enter a valid barcode number.');return}let box=document.getElementById('barcodeResult');box.innerHTML='<p class="sub">Searching Open Food Facts…</p>';try{let r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,quantity,nutriments');let j=await r.json();if(j.status!==1)throw Error('Product not found');let p=j.product,nt=p.nutriments||{};let per100=nt['energy-kcal_100g']??(nt['energy_100g']?nt['energy_100g']/4.184:0);window.currentProduct={name:p.product_name||'Packaged food',cal:per100,protein:nt.proteins_100g||0,carbs:nt.carbohydrates_100g||0,fat:nt.fat_100g||0,fibre:nt.fiber_100g||0,sugar:nt.sugars_100g||0,sodium:(nt.sodium_100g||0)*1000};box.innerHTML='<div class="card"><h3>'+esc(p.product_name||'Product')+'</h3><p class="small">'+esc(p.brands||'')+' · '+esc(p.quantity||'')+'</p><p class="stat">'+Math.round(per100)+' kcal <span class="small">per 100g</span></p><p class="sub">Protein '+(nt.proteins_100g||0)+'g · Carbs '+(nt.carbohydrates_100g||0)+'g · Fat '+(nt.fat_100g||0)+'g</p><button class="btn" onclick="useProduct(window.currentProduct)">Add to diary</button></div>'}catch(err){box.innerHTML='<p class="sub">Could not find that product. Check the barcode or enter it manually.</p>'}}
+async function scanBarcodePhoto(event){
+ const file=event.target.files?.[0];if(!file)return;
+ const status=document.getElementById('barcodeScanStatus'),preview=document.getElementById('barcodePhotoPreview');
+ status.textContent='Reading barcode from photo…';preview.innerHTML='';
+ const url=URL.createObjectURL(file),img=new Image();
+ img.onload=async()=>{
+  preview.innerHTML='<img class="foodphoto" src="'+url+'" alt="Barcode photo">';
+  let code='';
+  try{
+   if('BarcodeDetector'in window){
+    const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','itf']});
+    const found=await detector.detect(img);if(found.length)code=found[0].rawValue;
+   }
+   if(!code)code=await decodeBarcodeWithZXing(img);
+   if(!code)throw Error('No barcode found. Try a brighter, closer photo with the full barcode in focus.');
+   document.getElementById('barcodeInput').value=code;
+   status.textContent='Barcode detected: '+code+'. Looking up product…';
+   await lookupBarcode(code);
+  }catch(err){status.textContent=err.message||'Could not read this barcode. Try another photo or enter the number manually.'}
+  finally{URL.revokeObjectURL(url)}
+ };
+ img.onerror=()=>{status.textContent='Could not open that image.';URL.revokeObjectURL(url)};
+ img.src=url;
+}
+async function decodeBarcodeWithZXing(img){
+ if(!window.ZXingBrowser){
+  await new Promise((resolve,reject)=>{
+   const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js';
+   script.onload=resolve;script.onerror=()=>reject(Error('Photo scanning library could not load. Check your internet connection and try again.'));
+   document.head.appendChild(script);
+  });
+ }
+ const Reader=window.ZXingBrowser?.BrowserMultiFormatReader;
+ if(!Reader)throw Error('This browser could not load barcode photo scanning. Try entering the barcode number manually.');
+ const reader=new Reader();
+ const result=await reader.decodeFromImageElement(img);
+ return result?.getText?.()||'';
+}
+async function lookupBarcode(codeOverride){
+ const code=(codeOverride||document.getElementById('barcodeInput').value).trim();
+ if(!/^\\d{8,14}$/.test(code)){document.getElementById('barcodeResult').innerHTML='<p class="sub">Enter a valid 8–14 digit barcode.</p>';return}
+ const box=document.getElementById('barcodeResult');box.innerHTML='<p class="sub">Searching Open Food Facts…</p>';
+ try{
+  const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,quantity,nutriments,serving_size');
+  const j=await r.json();if(j.status!==1)throw Error('Product not found in Open Food Facts.');
+  const p=j.product,nt=p.nutriments||{};
+  const val=(...keys)=>{for(const k of keys){const v=nt[k];if(v!==undefined&&v!==null&&v!==''&&Number.isFinite(Number(v)))return Number(v)}return null};
+  window.currentProduct={name:p.product_name||'Packaged food',brand:p.brands||'',quantity:p.quantity||'',servingSize:p.serving_size||'',barcode:code,
+   cal:val('energy-kcal_100g')??(val('energy_100g')!==null?val('energy_100g')/4.184:null),
+   protein:val('proteins_100g'),carbs:val('carbohydrates_100g'),fat:val('fat_100g'),fibre:val('fiber_100g','fibers_100g'),sugar:val('sugars_100g'),
+   satFat:val('saturated-fat_100g'),sodium:val('sodium_100g')===null?null:val('sodium_100g')*1000,
+   salt:val('salt_100g'),calcium:val('calcium_100g'),iron:val('iron_100g'),potassium:val('potassium_100g'),magnesium:val('magnesium_100g'),zinc:val('zinc_100g')};
+  box.innerHTML='<div class="mutedline"></div><h3>'+esc(window.currentProduct.name)+'</h3><p class="small">'+esc(window.currentProduct.brand)+' · '+esc(window.currentProduct.quantity)+'</p><div class="field"><label>Serving amount (grams)</label><input id="barcodeGrams" type="number" min="1" max="5000" value="100" oninput="updateBarcodePreview()"></div><div id="barcodeNutrients"></div><button class="btn" style="width:100%;margin-top:12px" onclick="addBarcodeProduct()">＋ Add product to diary</button>';
+  updateBarcodePreview();
+  document.getElementById('barcodeScanStatus').textContent='Product found. Review the nutrition values and serving amount below.';
+ }catch(err){box.innerHTML='<p class="sub">'+esc(err.message||'Could not find that product.')+' Try another barcode or enter food details manually.</p>'}
+}
+function updateBarcodePreview(){
+ const p=window.currentProduct;if(!p)return;
+ const grams=Math.max(1,Number(document.getElementById('barcodeGrams')?.value)||100),factor=grams/100;
+ const fields=[['Energy','cal','kcal'],['Protein','protein','g'],['Carbohydrates','carbs','g'],['Total fat','fat','g'],['Saturated fat','satFat','g'],['Fibre','fibre','g'],['Sugars','sugar','g'],['Sodium','sodium','mg'],['Salt','salt','g'],['Calcium','calcium','g'],['Iron','iron','g'],['Potassium','potassium','g'],['Magnesium','magnesium','g'],['Zinc','zinc','g']];
+ document.getElementById('barcodeNutrients').innerHTML='<div class="notice">Values for '+grams+'g. Nutrients not listed on the product record are shown as unavailable.</div>'+fields.filter(([l,k])=>p[k]!==null).map(([l,k,u])=>'<div class="row meal"><span class="sub">'+l+'</span><b>'+(p[k]*factor).toFixed(2).replace(/\\.?0+$/,'')+' '+u+'</b></div>').join('');
+}
+function addBarcodeProduct(){
+ const p=window.currentProduct;if(!p)return;
+ const grams=Math.max(1,Number(document.getElementById('barcodeGrams')?.value)||100),scale=v=>v===null?0:Math.round(v*grams/100*100)/100;
+ db.foods.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:today(),name:p.name+(p.brand?' · '+p.brand:''),meal:'Snack',serving:grams+'g',calories:scale(p.cal),protein:scale(p.protein),carbs:scale(p.carbs),fat:scale(p.fat),fibre:scale(p.fibre),sugar:scale(p.sugar),satFat:scale(p.satFat),sodium:scale(p.sodium),calcium:scale(p.calcium),iron:scale(p.iron),potassium:scale(p.potassium),magnesium:scale(p.magnesium),zinc:scale(p.zinc),source:'Open Food Facts',barcode:p.barcode});
+ persist();go('home');alert('Product added to your diary.');
+}
+
 function useProduct(p){go('manual');document.getElementById('foodName').value=p.name;document.getElementById('serving').value='100g';document.getElementById('fCalories').value=Math.round(p.cal);document.getElementById('fProtein').value=p.protein;document.getElementById('fCarbs').value=p.carbs;document.getElementById('fFat').value=p.fat;document.getElementById('fFibre').value=p.fibre;document.getElementById('fSugar').value=p.sugar;document.getElementById('fSodium').value=p.sodium}
 
 const RECIPES=[
