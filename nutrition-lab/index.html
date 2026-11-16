@@ -49,24 +49,75 @@ async function loadUSDAFood(id){
   selectedUSDADetail=food;selectedUSDAFood=food;
   const nutrients=(food.foodNutrients||[]).map(x=>({name:x.nutrient?.name||x.name||'Nutrient',unit:x.nutrient?.unitName||x.unitName||'',amount:x.amount??x.value??null})).filter(x=>x.amount!==null&&Number.isFinite(Number(x.amount)));
   const mapped=mapUSDANutrients(nutrients);
-  detail.innerHTML='<div class="mutedline"></div><h3>'+esc(food.description||'Selected food')+'</h3><p class="small">'+esc(food.brandOwner||food.dataType||'USDA FoodData Central')+' · Nutrient values are generally per 100g.</p><div class="field"><label>Serving weight (grams)</label><input id="usdaGrams" type="number" min="1" max="5000" value="100" oninput="updateUSDAValues()"></div><div id="usdaNutrientValues"></div><button class="btn" style="width:100%;margin-top:12px" onclick="addUSDAFoodToDiary()">＋ Add this food to diary</button>';
-  updateUSDAValues();status.textContent='Food details loaded.';
+  detail.innerHTML='<div class="mutedline"></div><h3>'+esc(food.description||'Selected food')+'</h3><p class="small">'+esc(food.brandOwner||food.dataType||'USDA FoodData Central')+' · Nutrient values are generally per 100g.</p><div class="grid2"><div class="field"><label>Amount</label><input id="usdaAmount" type="number" min="0.01" max="10000" step="any" value="1" oninput="updateUSDAValues()"></div><div class="field"><label>Measurement</label><select id="usdaUnit" onchange="updateUSDAValues()"></select></div></div><div id="usdaNutrientValues"></div><button class="btn" style="width:100%;margin-top:12px" onclick="addUSDAFoodToDiary()">＋ Add this food to diary</button>';
+  setupUSDAUnits();updateUSDAValues();status.textContent='Food details loaded.';
  }catch(e){status.textContent=e.message||'Could not load food details.'}
 }
 function mapUSDANutrients(items){
  const find=(terms,unit)=>{const x=items.find(n=>terms.some(t=>n.name.toLowerCase()===t||n.name.toLowerCase().includes(t))&&(!unit||n.unit.toLowerCase()===unit));return x?Number(x.amount):null};
  return {calories:find(['energy'], 'kcal'),protein:find(['protein'], 'g'),carbs:find(['carbohydrate, by difference','carbohydrate'], 'g'),fat:find(['total lipid (fat)','total fat'], 'g'),fibre:find(['fiber, total dietary','dietary fiber','fibre'], 'g'),sugar:find([' sugars, total including nlea','total sugars','sugars'], 'g'),satFat:find(['fatty acids, total saturated','saturated fat'], 'g'),sodium:find(['sodium, na'], 'mg'),calcium:find(['calcium, ca'], 'mg'),iron:find(['iron, fe'], 'mg'),potassium:find(['potassium, k'], 'mg'),magnesium:find(['magnesium, mg'], 'mg'),zinc:find(['zinc, zn'], 'mg')};
 }
+function usdaPortions(){
+ return (selectedUSDADetail?.foodPortions||[]).filter(p=>Number(p.gramWeight)>0).map((p,i)=>({i,grams:Number(p.gramWeight),amount:Number(p.amount)||1,unit:p.measureUnit?.name||p.measureUnit?.abbreviation||'serving',modifier:p.modifier||''}));
+}
+function usdaDensity(){
+ const name=(selectedUSDADetail?.description||'').toLowerCase();
+ const portions=usdaPortions();
+ const volumeMl=p=>{
+  const u=(p.unit+' '+p.modifier).toLowerCase();
+  if(/\b(ml|milliliter|millilitre)\b/.test(u))return p.amount;
+  if(/\b(cup|cups)\b/.test(u))return p.amount*240;
+  if(/\b(tbsp|tablespoon)\b/.test(u))return p.amount*15;
+  if(/\b(tsp|teaspoon)\b/.test(u))return p.amount*5;
+  if(/\b(fl oz|fluid ounce)\b/.test(u))return p.amount*29.5735;
+  return 0;
+ };
+ const p=portions.find(x=>volumeMl(x)>0);
+ if(p)return {value:p.grams/volumeMl(p),source:'USDA serving data'};
+ let density=1,known=false;
+ if(/oil|olive oil|vegetable oil/.test(name)){density=.92;known=true}
+ else if(/flour/.test(name)){density=.53;known=true}
+ else if(/rolled oats|oatmeal|oats/.test(name)){density=.4;known=true}
+ else if(/sugar/.test(name)){density=.85;known=true}
+ else if(/uncooked|dry rice/.test(name)){density=.85;known=true}
+ else if(/cooked rice/.test(name)){density=.79;known=true}
+ else if(/cooked pasta|pasta, cooked/.test(name)){density=.7;known=true}
+ else if(/water|milk|juice|broth|stock|coffee|tea|cream/.test(name)){density=1.02;known=true}
+ return {value:density,source:known?'estimated food-specific conversion':'rough 1 ml = 1 g estimate'};
+}
+function usdaServingGrams(){
+ const amount=Math.max(.01,Number(document.getElementById('usdaAmount')?.value)||1),unit=document.getElementById('usdaUnit')?.value||'g';
+ if(unit==='g')return amount;
+ if(unit==='ml')return amount*usdaDensity().value;
+ if(unit==='cup')return amount*240*usdaDensity().value;
+ if(unit==='tbsp')return amount*15*usdaDensity().value;
+ if(unit==='tsp')return amount*5*usdaDensity().value;
+ if(unit.startsWith('portion:')){const p=usdaPortions()[Number(unit.split(':')[1])];return p?p.grams/p.amount*amount:amount}
+ return amount;
+}
+function setupUSDAUnits(){
+ const select=document.getElementById('usdaUnit');if(!select)return;
+ const portions=usdaPortions();
+ const opts=[['g','Grams (g)'],['ml','Millilitres (mL)'],['cup','Cups'],['tbsp','Tablespoons'],['tsp','Teaspoons']];
+ portions.forEach(p=>opts.push(['portion:'+p.i,(p.amount===1?'1 ':p.amount+' ')+p.unit+(p.modifier?' · '+p.modifier:'')+' ('+p.grams+'g)']));
+ select.innerHTML=opts.map(([v,l])=>'<option value="'+esc(v)+'">'+esc(l)+'</option>').join('');
+ const liquid=/water|milk|juice|broth|stock|coffee|tea|cream|soup/.test((selectedUSDADetail?.description||'').toLowerCase());
+ select.value=liquid?'ml':(portions.some(p=>/cup/i.test(p.unit+' '+p.modifier))?'portion:'+portions.find(p=>/cup/i.test(p.unit+' '+p.modifier)).i:'g');
+}
 function updateUSDAValues(){
- if(!selectedUSDADetail)return;const grams=Math.max(1,Number(document.getElementById('usdaGrams')?.value)||100),factor=grams/100;
+ if(!selectedUSDADetail)return;
+ const grams=usdaServingGrams(),amount=Math.max(.01,Number(document.getElementById('usdaAmount')?.value)||1),unit=document.getElementById('usdaUnit')?.value||'g';
  const items=(selectedUSDADetail.foodNutrients||[]).map(x=>({name:x.nutrient?.name||x.name||'Nutrient',unit:x.nutrient?.unitName||x.unitName||'',amount:x.amount??x.value??null})).filter(x=>x.amount!==null&&Number.isFinite(Number(x.amount)));
- const all=items.map(x=>'<div class="row meal"><span class="sub">'+esc(x.name)+'</span><b>'+((Number(x.amount)*factor).toFixed(3).replace(/\.0+$/,''))+' '+esc(x.unit)+'</b></div>').join('');
- document.getElementById('usdaNutrientValues').innerHTML='<div class="notice">Values below are scaled to '+grams+'g. Only nutrients reported by this USDA record are shown.</div>'+all;
+ const all=items.map(x=>'<div class="row meal"><span class="sub">'+esc(x.name)+'</span><b>'+((Number(x.amount)*grams/100).toFixed(3).replace(/\.0+$/,''))+' '+esc(x.unit)+'</b></div>').join('');
+ const density=usdaDensity(),note=(unit==='ml'||unit==='cup'||unit==='tbsp'||unit==='tsp')?' Volume conversion: '+esc(density.source)+'. Approximate weight '+grams.toFixed(1)+'g.':'';
+ document.getElementById('usdaNutrientValues').innerHTML='<div class="notice">Serving: '+amount+' '+esc(document.getElementById('usdaUnit').selectedOptions[0]?.textContent||unit)+' · estimated weight '+grams.toFixed(1)+'g. Nutrients are scaled from the USDA per-100g values.'+note+'</div>'+all;
 }
 function addUSDAFoodToDiary(){
- if(!selectedUSDADetail)return;const grams=Math.max(1,Number(document.getElementById('usdaGrams')?.value)||100),items=(selectedUSDADetail.foodNutrients||[]).map(x=>({name:x.nutrient?.name||x.name||'Nutrient',unit:x.nutrient?.unitName||x.unitName||'',amount:x.amount??x.value??null})).filter(x=>x.amount!==null&&Number.isFinite(Number(x.amount))),m=mapUSDANutrients(items),scale=v=>v===null?0:Math.round(v*grams/100*100)/100;
- db.foods.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:today(),name:selectedUSDADetail.description||'USDA food',meal:'Snack',serving:grams+'g',calories:scale(m.calories),protein:scale(m.protein),carbs:scale(m.carbs),fat:scale(m.fat),fibre:scale(m.fibre),sugar:scale(m.sugar),satFat:scale(m.satFat),sodium:scale(m.sodium),calcium:scale(m.calcium),iron:scale(m.iron),potassium:scale(m.potassium),magnesium:scale(m.magnesium),zinc:scale(m.zinc),source:'USDA FoodData Central',fdcId:selectedUSDADetail.fdcId});
- persist();go('home');alert('Food added to your diary. Values not reported by USDA were left blank/zero in the current diary fields.');
+ if(!selectedUSDADetail)return;
+ const grams=usdaServingGrams(),amount=Math.max(.01,Number(document.getElementById('usdaAmount')?.value)||1),unit=document.getElementById('usdaUnit')?.value||'g',unitLabel=document.getElementById('usdaUnit')?.selectedOptions[0]?.textContent||unit;
+ const items=(selectedUSDADetail.foodNutrients||[]).map(x=>({name:x.nutrient?.name||x.name||'Nutrient',unit:x.nutrient?.unitName||x.unitName||'',amount:x.amount??x.value??null})).filter(x=>x.amount!==null&&Number.isFinite(Number(x.amount))),m=mapUSDANutrients(items),scale=v=>v===null?0:Math.round(v*grams/100*100)/100;
+ db.foods.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:today(),name:selectedUSDADetail.description||'USDA food',meal:'Snack',serving:amount+' '+unitLabel+' ('+grams.toFixed(1)+'g)',calories:scale(m.calories),protein:scale(m.protein),carbs:scale(m.carbs),fat:scale(m.fat),fibre:scale(m.fibre),sugar:scale(m.sugar),satFat:scale(m.satFat),sodium:scale(m.sodium),calcium:scale(m.calcium),iron:scale(m.iron),potassium:scale(m.potassium),magnesium:scale(m.magnesium),zinc:scale(m.zinc),source:'USDA FoodData Central',fdcId:selectedUSDADetail.fdcId});
+ persist();go('home');alert('Food added to your diary.');
 }
 const KEY='nutritionLab_v1';
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||{foods:[],water:{},goals:{calories:2000,protein:120,carbs:220,fat:70,water:2000}};
